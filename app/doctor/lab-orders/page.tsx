@@ -7,15 +7,18 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Filter, Plus, Search, FileText, Calendar } from "lucide-react"
-import Link from "next/link"
+import { Filter, Plus, Search, Calendar } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { format } from "date-fns"
 
 export default function DoctorLabOrdersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-
-  // Sample lab order data
-  const labOrders = [
+  const [showLabOrderForm, setShowLabOrderForm] = useState(false)
+  const [labOrders, setLabOrders] = useState([
     {
       id: 1,
       patientId: "PT-12345",
@@ -76,7 +79,16 @@ export default function DoctorLabOrdersPage() {
       priority: "Routine",
       status: "Completed",
     },
-  ]
+  ])
+
+  const [newLabOrder, setNewLabOrder] = useState({
+    patientName: "",
+    patientId: "",
+    testType: "",
+    orderedDate: new Date(),
+    dueDate: new Date(),
+    priority: "Routine",
+  })
 
   // Filter lab orders based on search query and status filter
   const filteredLabOrders = labOrders.filter((order) => {
@@ -118,6 +130,38 @@ export default function DoctorLabOrdersPage() {
     }
   }
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setNewLabOrder((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const newId = Math.max(...labOrders.map((o) => o.id)) + 1
+    setLabOrders([
+      ...labOrders,
+      {
+        id: newId,
+        patientId: newLabOrder.patientId,
+        patientName: newLabOrder.patientName,
+        testType: newLabOrder.testType,
+        orderedDate: format(newLabOrder.orderedDate, "MMMM d, yyyy"),
+        dueDate: format(newLabOrder.dueDate, "MMMM d, yyyy"),
+        priority: newLabOrder.priority,
+        status: "Ordered",
+      },
+    ])
+    setNewLabOrder({
+      patientName: "",
+      patientId: "",
+      testType: "",
+      orderedDate: new Date(),
+      dueDate: new Date(),
+      priority: "Routine",
+    })
+    setShowLabOrderForm(false)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -125,12 +169,145 @@ export default function DoctorLabOrdersPage() {
           <h1 className="text-3xl font-bold tracking-tight">Lab Orders</h1>
           <p className="text-muted-foreground">Manage and track patient laboratory tests</p>
         </div>
-        <Button className="gap-2" asChild>
-          <Link href="/doctor/lab-orders/new">
-            <Plus className="h-4 w-4" />
-            New Lab Order
-          </Link>
-        </Button>
+        <Dialog open={showLabOrderForm} onOpenChange={setShowLabOrderForm}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Lab Order
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Create New Lab Order</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="patientName">Patient Name</Label>
+                  <Input
+                    id="patientName"
+                    name="patientName"
+                    value={newLabOrder.patientName}
+                    onChange={handleInputChange}
+                    placeholder="Enter patient name"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="patientId">Patient ID</Label>
+                  <Input
+                    id="patientId"
+                    name="patientId"
+                    value={newLabOrder.patientId}
+                    onChange={handleInputChange}
+                    placeholder="Enter patient ID"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="testType">Test Type</Label>
+                <Select
+                  name="testType"
+                  value={newLabOrder.testType}
+                  onValueChange={(value) => setNewLabOrder((prev) => ({ ...prev, testType: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select test type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Comprehensive Metabolic Panel">Comprehensive Metabolic Panel</SelectItem>
+                    <SelectItem value="Complete Blood Count">Complete Blood Count</SelectItem>
+                    <SelectItem value="Kidney Function Panel">Kidney Function Panel</SelectItem>
+                    <SelectItem value="Urinalysis">Urinalysis</SelectItem>
+                    <SelectItem value="Electrolyte Panel">Electrolyte Panel</SelectItem>
+                    <SelectItem value="Lipid Panel">Lipid Panel</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Ordered Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {newLabOrder.orderedDate
+                          ? format(newLabOrder.orderedDate, "PPP")
+                          : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <CalendarComponent
+                        mode="single"
+                        selected={newLabOrder.orderedDate}
+                        onSelect={(selectedDate) =>
+                          setNewLabOrder((prev) => ({ ...prev, orderedDate: selectedDate || new Date() }))
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label>Due Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {newLabOrder.dueDate
+                          ? format(newLabOrder.dueDate, "PPP")
+                          : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <CalendarComponent
+                        mode="single"
+                        selected={newLabOrder.dueDate}
+                        onSelect={(selectedDate) =>
+                          setNewLabOrder((prev) => ({ ...prev, dueDate: selectedDate || new Date() }))
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="priority">Priority</Label>
+                <Select
+                  name="priority"
+                  value={newLabOrder.priority}
+                  onValueChange={(value) => setNewLabOrder((prev) => ({ ...prev, priority: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Routine">Routine</SelectItem>
+                    <SelectItem value="Urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex justify-end gap-4">
+                <Button variant="outline" type="button" onClick={() => setShowLabOrderForm(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Create Lab Order</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
@@ -205,12 +382,12 @@ export default function DoctorLabOrdersPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/doctor/lab-orders/${order.id}`}>View</Link>
+                          <Button variant="outline" size="sm">
+                            View
                           </Button>
                           {order.status === "Completed" && (
-                            <Button variant="outline" size="sm" asChild>
-                              <Link href={`/doctor/lab-orders/${order.id}/results`}>Results</Link>
+                            <Button variant="outline" size="sm">
+                              Results
                             </Button>
                           )}
                         </div>
@@ -221,11 +398,8 @@ export default function DoctorLabOrdersPage() {
               </TableBody>
             </Table>
           </div>
-
-          
         </CardContent>
       </Card>
     </div>
   )
 }
-

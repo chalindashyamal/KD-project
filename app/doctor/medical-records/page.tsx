@@ -7,15 +7,18 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Filter, Plus, Search, FileText, Download } from "lucide-react"
-import Link from "next/link"
+import { Filter, Plus, Search, Download, Calendar } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { format } from "date-fns"
 
 export default function DoctorMedicalRecordsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [recordTypeFilter, setRecordTypeFilter] = useState("all")
-
-  // Sample medical records data
-  const medicalRecords = [
+  const [showRecordForm, setShowRecordForm] = useState(false)
+  const [medicalRecords, setMedicalRecords] = useState([
     {
       id: 1,
       patientId: "PT-12345",
@@ -70,7 +73,16 @@ export default function DoctorMedicalRecordsPage() {
       provider: "Dr. Lisa Chen",
       description: "AV fistula creation procedure",
     },
-  ]
+  ])
+
+  const [newRecord, setNewRecord] = useState({
+    patientName: "",
+    patientId: "",
+    recordType: "",
+    date: new Date(),
+    provider: "",
+    description: "",
+  })
 
   // Filter medical records based on search query and record type filter
   const filteredRecords = medicalRecords.filter((record) => {
@@ -85,6 +97,37 @@ export default function DoctorMedicalRecordsPage() {
     return matchesSearch && matchesType
   })
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setNewRecord((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const newId = Math.max(...medicalRecords.map((r) => r.id)) + 1
+    setMedicalRecords([
+      ...medicalRecords,
+      {
+        id: newId,
+        patientId: newRecord.patientId,
+        patientName: newRecord.patientName,
+        recordType: newRecord.recordType,
+        date: format(newRecord.date, "MMMM d, yyyy"),
+        provider: newRecord.provider,
+        description: newRecord.description,
+      },
+    ])
+    setNewRecord({
+      patientName: "",
+      patientId: "",
+      recordType: "",
+      date: new Date(),
+      provider: "",
+      description: "",
+    })
+    setShowRecordForm(false)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -92,12 +135,121 @@ export default function DoctorMedicalRecordsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Medical Records</h1>
           <p className="text-muted-foreground">View and manage patient medical records</p>
         </div>
-        <Button className="gap-2" asChild>
-          <Link href="/doctor/medical-records/create">
-            <Plus className="h-4 w-4" />
-            Create Record
-          </Link>
-        </Button>
+        <Dialog open={showRecordForm} onOpenChange={setShowRecordForm}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Create Record
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Create New Medical Record</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="patientName">Patient Name</Label>
+                  <Input
+                    id="patientName"
+                    name="patientName"
+                    value={newRecord.patientName}
+                    onChange={handleInputChange}
+                    placeholder="Enter patient name"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="patientId">Patient ID</Label>
+                  <Input
+                    id="patientId"
+                    name="patientId"
+                    value={newRecord.patientId}
+                    onChange={handleInputChange}
+                    placeholder="Enter patient ID"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="recordType">Record Type</Label>
+                <Select
+                  name="recordType"
+                  value={newRecord.recordType}
+                  onValueChange={(value) => setNewRecord((prev) => ({ ...prev, recordType: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select record type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Progress Note">Progress Note</SelectItem>
+                    <SelectItem value="Dialysis Report">Dialysis Report</SelectItem>
+                    <SelectItem value="Transplant Evaluation">Transplant Evaluation</SelectItem>
+                    <SelectItem value="Nutrition Consultation">Nutrition Consultation</SelectItem>
+                    <SelectItem value="Procedure Note">Procedure Note</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {newRecord.date ? format(newRecord.date, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={newRecord.date}
+                      onSelect={(selectedDate) =>
+                        setNewRecord((prev) => ({ ...prev, date: selectedDate || new Date() }))
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="provider">Provider</Label>
+                <Input
+                  id="provider"
+                  name="provider"
+                  value={newRecord.provider}
+                  onChange={handleInputChange}
+                  placeholder="Enter provider name"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Input
+                  id="description"
+                  name="description"
+                  value={newRecord.description}
+                  onChange={handleInputChange}
+                  placeholder="Enter record description"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-4">
+                <Button variant="outline" type="button" onClick={() => setShowRecordForm(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Create Record</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
@@ -168,8 +320,8 @@ export default function DoctorMedicalRecordsPage() {
                       <TableCell className="max-w-xs truncate">{record.description}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/doctor/medical-records/${record.id}`}>View</Link>
+                          <Button variant="outline" size="sm">
+                            View
                           </Button>
                           <Button variant="outline" size="sm" className="gap-1">
                             <Download className="h-3 w-3" />
@@ -183,11 +335,8 @@ export default function DoctorMedicalRecordsPage() {
               </TableBody>
             </Table>
           </div>
-
-          
         </CardContent>
       </Card>
     </div>
   )
 }
-

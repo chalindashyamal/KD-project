@@ -27,11 +27,7 @@ const routes = [
     icon: Users,
     href: "/doctor/patients",
   },
-  {
-    label: "Appointments",
-    icon: Calendar,
-    href: "/doctor/appointments",
-  },
+  
   {
     label: "Prescriptions",
     icon: Pill,

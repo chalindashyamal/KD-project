@@ -9,15 +9,18 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Search, Filter, MoreHorizontal, FileText, Calendar, Activity, Eye, UserCog } from "lucide-react"
-import Link from "next/link"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { format } from "date-fns"
 
 export default function StaffPatientsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [sortBy, setSortBy] = useState("name")
-
-  // Sample patient data
-  const patients = [
+  const [showCheckInForm, setShowCheckInForm] = useState(false)
+  const [patients, setPatients] = useState([
     {
       id: "PT-12345",
       name: "John Doe",
@@ -88,24 +91,28 @@ export default function StaffPatientsPage() {
       lastVisit: "Apr 15, 2025",
       nextAppointment: "May 5, 2025",
     },
-  ]
+  ])
+
+  const [newCheckIn, setNewCheckIn] = useState({
+    patientName: "",
+    patientId: "",
+    visitReason: "",
+    checkInDate: new Date(),
+  })
 
   // Filter and sort patients
   const filteredPatients = patients
     .filter((patient) => {
-      // Apply search filter
       const matchesSearch =
         patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         patient.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         patient.diagnosis.toLowerCase().includes(searchQuery.toLowerCase())
 
-      // Apply status filter
       const matchesStatus = statusFilter === "all" || patient.status.toLowerCase() === statusFilter.toLowerCase()
 
       return matchesSearch && matchesStatus
     })
     .sort((a, b) => {
-      // Apply sorting
       if (sortBy === "name") {
         return a.name.localeCompare(b.name)
       } else if (sortBy === "id") {
@@ -131,6 +138,35 @@ export default function StaffPatientsPage() {
     }
   }
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setNewCheckIn((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Update the patient's status and last visit date
+    setPatients((prevPatients) =>
+      prevPatients.map((patient) =>
+        patient.id === newCheckIn.patientId
+          ? {
+              ...patient,
+              status: "Active",
+              lastVisit: format(newCheckIn.checkInDate, "MMM d, yyyy"),
+            }
+          : patient
+      )
+    )
+    // Reset the form
+    setNewCheckIn({
+      patientName: "",
+      patientId: "",
+      visitReason: "",
+      checkInDate: new Date(),
+    })
+    setShowCheckInForm(false)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -138,12 +174,89 @@ export default function StaffPatientsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Patient Management</h1>
           <p className="text-muted-foreground">View and manage patient information</p>
         </div>
-        <Button className="gap-2" asChild>
-          <Link href="/staff/patients/check-in">
-            <UserCog className="h-4 w-4" />
-            Check-in Patient
-          </Link>
-        </Button>
+        <Dialog open={showCheckInForm} onOpenChange={setShowCheckInForm}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <UserCog className="h-4 w-4" />
+              Check-in Patient
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Check-in Patient</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="patientName">Patient Name</Label>
+                  <Input
+                    id="patientName"
+                    name="patientName"
+                    value={newCheckIn.patientName}
+                    onChange={handleInputChange}
+                    placeholder="Enter patient name"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="patientId">Patient ID</Label>
+                  <Input
+                    id="patientId"
+                    name="patientId"
+                    value={newCheckIn.patientId}
+                    onChange={handleInputChange}
+                    placeholder="Enter patient ID"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="visitReason">Visit Reason</Label>
+                <Input
+                  id="visitReason"
+                  name="visitReason"
+                  value={newCheckIn.visitReason}
+                  onChange={handleInputChange}
+                  placeholder="Enter reason for visit"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Check-in Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {newCheckIn.checkInDate ? format(newCheckIn.checkInDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={newCheckIn.checkInDate}
+                      onSelect={(selectedDate) =>
+                        setNewCheckIn((prev) => ({ ...prev, checkInDate: selectedDate || new Date() }))
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="flex justify-end gap-4">
+                <Button variant="outline" type="button" onClick={() => setShowCheckInForm(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Check-in Patient</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
@@ -235,29 +348,21 @@ export default function StaffPatientsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/staff/patients/${patient.id}`}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </Link>
+                            <DropdownMenuItem>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/staff/vitals/record?patientId=${patient.id}`}>
-                                <Activity className="mr-2 h-4 w-4" />
-                                Record Vitals
-                              </Link>
+                            <DropdownMenuItem>
+                              <Activity className="mr-2 h-4 w-4" />
+                              Record Vitals
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/staff/appointments/schedule?patientId=${patient.id}`}>
-                                <Calendar className="mr-2 h-4 w-4" />
-                                Schedule Appointment
-                              </Link>
+                            <DropdownMenuItem>
+                              <Calendar className="mr-2 h-4 w-4" />
+                              Schedule Appointment
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/staff/patients/${patient.id}/records`}>
-                                <FileText className="mr-2 h-4 w-4" />
-                                Medical Records
-                              </Link>
+                            <DropdownMenuItem>
+                              <FileText className="mr-2 h-4 w-4" />
+                              Medical Records
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -273,4 +378,3 @@ export default function StaffPatientsPage() {
     </div>
   )
 }
-

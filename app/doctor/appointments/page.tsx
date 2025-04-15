@@ -10,21 +10,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CalendarIcon, Clock, Filter, MapPin, Plus, Search } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
-import Link from "next/link"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 export default function DoctorAppointmentsPage() {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-
-  // Sample appointment data
-  const appointments = [
+  const [showScheduleForm, setShowScheduleForm] = useState(false)
+  const [appointments, setAppointments] = useState([
     {
       id: 1,
       patientId: "PT-12345",
       patientName: "John Doe",
       type: "Nephrology Consultation",
-      date: new Date(2025, 3, 30), // April 30, 2025
+      date: new Date(2025, 3, 30),
       time: "10:30 AM",
       duration: "30 min",
       location: "Exam Room 3",
@@ -35,7 +36,7 @@ export default function DoctorAppointmentsPage() {
       patientId: "PT-23456",
       patientName: "Sarah Smith",
       type: "Follow-up",
-      date: new Date(2025, 3, 30), // April 30, 2025
+      date: new Date(2025, 3, 30),
       time: "11:15 AM",
       duration: "20 min",
       location: "Exam Room 1",
@@ -46,7 +47,7 @@ export default function DoctorAppointmentsPage() {
       patientId: "PT-34567",
       patientName: "Mike Johnson",
       type: "Transplant Evaluation",
-      date: new Date(2025, 3, 30), // April 30, 2025
+      date: new Date(2025, 3, 30),
       time: "1:00 PM",
       duration: "45 min",
       location: "Exam Room 2",
@@ -57,7 +58,7 @@ export default function DoctorAppointmentsPage() {
       patientId: "PT-45678",
       patientName: "Emily Davis",
       type: "New Patient",
-      date: new Date(2025, 3, 30), // April 30, 2025
+      date: new Date(2025, 3, 30),
       time: "2:30 PM",
       duration: "60 min",
       location: "Exam Room 3",
@@ -67,7 +68,7 @@ export default function DoctorAppointmentsPage() {
       id: 5,
       patientId: "PT-56789",
       patientName: "Robert Wilson",
-      date: new Date(2025, 4, 1), // May 1, 2025
+      date: new Date(2025, 4, 1),
       type: "Dialysis Follow-up",
       time: "9:00 AM",
       duration: "30 min",
@@ -78,14 +79,24 @@ export default function DoctorAppointmentsPage() {
       id: 6,
       patientId: "PT-67890",
       patientName: "Jennifer Brown",
-      date: new Date(2025, 4, 1), // May 1, 2025
+      date: new Date(2025, 4, 1),
       type: "Medication Review",
       time: "10:00 AM",
       duration: "20 min",
       location: "Exam Room 2",
       status: "Scheduled",
     },
-  ]
+  ])
+
+  const [newAppointment, setNewAppointment] = useState({
+    patientName: "",
+    patientId: "",
+    type: "",
+    date: new Date(),
+    time: "",
+    duration: "",
+    location: "",
+  })
 
   // Filter appointments based on selected date, search query, and status filter
   const filteredAppointments = appointments.filter((appointment) => {
@@ -122,6 +133,40 @@ export default function DoctorAppointmentsPage() {
     }
   }
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setNewAppointment((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const newId = Math.max(...appointments.map((a) => a.id)) + 1
+    setAppointments([
+      ...appointments,
+      {
+        id: newId,
+        patientId: newAppointment.patientId,
+        patientName: newAppointment.patientName,
+        type: newAppointment.type,
+        date: newAppointment.date,
+        time: newAppointment.time,
+        duration: newAppointment.duration,
+        location: newAppointment.location,
+        status: "Scheduled",
+      },
+    ])
+    setNewAppointment({
+      patientName: "",
+      patientId: "",
+      type: "",
+      date: new Date(),
+      time: "",
+      duration: "",
+      location: "",
+    })
+    setShowScheduleForm(false)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -129,12 +174,143 @@ export default function DoctorAppointmentsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Appointments</h1>
           <p className="text-muted-foreground">Manage and schedule patient appointments</p>
         </div>
-        <Button className="gap-2" asChild>
-          <Link href="/doctor/appointments/schedule">
-            <Plus className="h-4 w-4" />
-            Schedule Appointment
-          </Link>
-        </Button>
+        <Dialog open={showScheduleForm} onOpenChange={setShowScheduleForm}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Schedule Appointment
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Schedule New Appointment</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="patientName">Patient Name</Label>
+                  <Input
+                    id="patientName"
+                    name="patientName"
+                    value={newAppointment.patientName}
+                    onChange={handleInputChange}
+                    placeholder="Enter patient name"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="patientId">Patient ID</Label>
+                  <Input
+                    id="patientId"
+                    name="patientId"
+                    value={newAppointment.patientId}
+                    onChange={handleInputChange}
+                    placeholder="Enter patient ID"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="type">Appointment Type</Label>
+                  <Select
+                    name="type"
+                    value={newAppointment.type}
+                    onValueChange={(value) => setNewAppointment((prev) => ({ ...prev, type: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select appointment type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Nephrology Consultation">Nephrology Consultation</SelectItem>
+                      <SelectItem value="Follow-up">Follow-up</SelectItem>
+                      <SelectItem value="Transplant Evaluation">Transplant Evaluation</SelectItem>
+                      <SelectItem value="New Patient">New Patient</SelectItem>
+                      <SelectItem value="Dialysis Follow-up">Dialysis Follow-up</SelectItem>
+                      <SelectItem value="Medication Review">Medication Review</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {newAppointment.date ? format(newAppointment.date, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={newAppointment.date}
+                        onSelect={(selectedDate) =>
+                          setNewAppointment((prev) => ({ ...prev, date: selectedDate || new Date() }))
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="time">Time</Label>
+                  <div className="relative">
+                    <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="time"
+                      name="time"
+                      value={newAppointment.time}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 10:30 AM"
+                      className="pl-8"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="duration">Duration</Label>
+                  <Input
+                    id="duration"
+                    name="duration"
+                    value={newAppointment.duration}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 30 min"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="location"
+                      name="location"
+                      value={newAppointment.location}
+                      onChange={handleInputChange}
+                      placeholder="e.g., Exam Room 1"
+                      className="pl-8"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4">
+                <Button variant="outline" type="button" onClick={() => setShowScheduleForm(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Schedule Appointment</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">
@@ -146,23 +322,17 @@ export default function DoctorAppointmentsPage() {
           <CardContent>
             <Calendar mode="single" selected={date} onSelect={setDate} className="border rounded-md" />
             <div className="mt-4 grid gap-2">
-              <Button variant="outline" className="w-full justify-start text-left font-normal" asChild>
-                <Link href="/doctor/appointments/today">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  Today's Appointments
-                </Link>
+              <Button variant="outline" className="w-full justify-start text-left font-normal">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                Today's Appointments
               </Button>
-              <Button variant="outline" className="w-full justify-start text-left font-normal" asChild>
-                <Link href="/doctor/appointments/week">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  This Week
-                </Link>
+              <Button variant="outline" className="w-full justify-start text-left font-normal">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                This Week
               </Button>
-              <Button variant="outline" className="w-full justify-start text-left font-normal" asChild>
-                <Link href="/doctor/appointments/month">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  This Month
-                </Link>
+              <Button variant="outline" className="w-full justify-start text-left font-normal">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                This Month
               </Button>
             </div>
           </CardContent>
@@ -246,8 +416,8 @@ export default function DoctorAppointmentsPage() {
                           <Badge variant={getStatusBadgeVariant(appointment.status)}>{appointment.status}</Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/doctor/appointments/${appointment.id}`}>View</Link>
+                          <Button variant="outline" size="sm">
+                            View
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -262,4 +432,3 @@ export default function DoctorAppointmentsPage() {
     </div>
   )
 }
-

@@ -7,15 +7,18 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Filter, Plus, Search, FileText, Calendar, Pill } from "lucide-react"
-import Link from "next/link"
+import { Filter, Plus, Search, FileText, Calendar } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { format } from "date-fns"
 
 export default function DoctorPrescriptionsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-
-  // Sample prescription data
-  const prescriptions = [
+  const [showPrescriptionForm, setShowPrescriptionForm] = useState(false)
+  const [prescriptions, setPrescriptions] = useState([
     {
       id: 1,
       patientId: "PT-12345",
@@ -88,7 +91,18 @@ export default function DoctorPrescriptionsPage() {
       refills: 0,
       status: "Completed",
     },
-  ]
+  ])
+
+  const [newPrescription, setNewPrescription] = useState({
+    patientName: "",
+    patientId: "",
+    medication: "",
+    dosage: "",
+    frequency: "",
+    prescribedDate: new Date(),
+    expiryDate: new Date(),
+    refills: "0",
+  })
 
   // Filter prescriptions based on search query and status filter
   const filteredPrescriptions = prescriptions.filter((prescription) => {
@@ -117,6 +131,42 @@ export default function DoctorPrescriptionsPage() {
     }
   }
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setNewPrescription((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const newId = Math.max(...prescriptions.map((p) => p.id)) + 1
+    setPrescriptions([
+      ...prescriptions,
+      {
+        id: newId,
+        patientId: newPrescription.patientId,
+        patientName: newPrescription.patientName,
+        medication: newPrescription.medication,
+        dosage: newPrescription.dosage,
+        frequency: newPrescription.frequency,
+        prescribedDate: format(newPrescription.prescribedDate, "MMMM d, yyyy"),
+        expiryDate: format(newPrescription.expiryDate, "MMMM d, yyyy"),
+        refills: parseInt(newPrescription.refills) || 0,
+        status: parseInt(newPrescription.refills) > 0 ? "Active" : "Needs Refill",
+      },
+    ])
+    setNewPrescription({
+      patientName: "",
+      patientId: "",
+      medication: "",
+      dosage: "",
+      frequency: "",
+      prescribedDate: new Date(),
+      expiryDate: new Date(),
+      refills: "0",
+    })
+    setShowPrescriptionForm(false)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -124,12 +174,159 @@ export default function DoctorPrescriptionsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Prescriptions</h1>
           <p className="text-muted-foreground">Manage patient prescriptions and medications</p>
         </div>
-        <Button className="gap-2" asChild>
-          <Link href="/doctor/prescriptions/create">
-            <Plus className="h-4 w-4" />
-            Write Prescription
-          </Link>
-        </Button>
+        <Dialog open={showPrescriptionForm} onOpenChange={setShowPrescriptionForm}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Write Prescription
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Write New Prescription</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="patientName">Patient Name</Label>
+                  <Input
+                    id="patientName"
+                    name="patientName"
+                    value={newPrescription.patientName}
+                    onChange={handleInputChange}
+                    placeholder="Enter patient name"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="patientId">Patient ID</Label>
+                  <Input
+                    id="patientId"
+                    name="patientId"
+                    value={newPrescription.patientId}
+                    onChange={handleInputChange}
+                    placeholder="Enter patient ID"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="medication">Medication</Label>
+                  <Input
+                    id="medication"
+                    name="medication"
+                    value={newPrescription.medication}
+                    onChange={handleInputChange}
+                    placeholder="Enter medication name"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dosage">Dosage</Label>
+                  <Input
+                    id="dosage"
+                    name="dosage"
+                    value={newPrescription.dosage}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 5mg"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="frequency">Frequency</Label>
+                  <Input
+                    id="frequency"
+                    name="frequency"
+                    value={newPrescription.frequency}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Twice daily"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="refills">Refills</Label>
+                  <Input
+                    id="refills"
+                    name="refills"
+                    type="number"
+                    value={newPrescription.refills}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 0"
+                    min="0"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Prescribed Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {newPrescription.prescribedDate
+                          ? format(newPrescription.prescribedDate, "PPP")
+                          : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <CalendarComponent
+                        mode="single"
+                        selected={newPrescription.prescribedDate}
+                        onSelect={(selectedDate) =>
+                          setNewPrescription((prev) => ({ ...prev, prescribedDate: selectedDate || new Date() }))
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label>Expiry Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {newPrescription.expiryDate
+                          ? format(newPrescription.expiryDate, "PPP")
+                          : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <CalendarComponent
+                        mode="single"
+                        selected={newPrescription.expiryDate}
+                        onSelect={(selectedDate) =>
+                          setNewPrescription((prev) => ({ ...prev, expiryDate: selectedDate || new Date() }))
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4">
+                <Button variant="outline" type="button" onClick={() => setShowPrescriptionForm(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Write Prescription</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
@@ -213,11 +410,11 @@ export default function DoctorPrescriptionsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/doctor/prescriptions/${prescription.id}`}>View</Link>
+                          <Button variant="outline" size="sm">
+                            View
                           </Button>
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/doctor/prescriptions/${prescription.id}/refill`}>Refill</Link>
+                          <Button variant="outline" size="sm">
+                            Refill
                           </Button>
                         </div>
                       </TableCell>
@@ -227,11 +424,8 @@ export default function DoctorPrescriptionsPage() {
               </TableBody>
             </Table>
           </div>
-
-          
         </CardContent>
       </Card>
     </div>
   )
 }
-
