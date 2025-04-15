@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 187 75% 40%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 25 95% 90%;
+    --secondary-foreground: 25 70% 45%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 187 75% 94%;
+    --accent-foreground: 187 75% 30%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 187 75% 40%;
+
+    --radius: 1rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 187 75% 40%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 25 95% 90%;
+    --secondary-foreground: 25 70% 45%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 187 75% 20%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 187 75% 40%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.gradient-card {
+  background: linear-gradient(120deg, hsl(187, 75%, 40%), hsl(187, 75%, 30%));
+}
+
+.gradient-card-secondary {
+  background: linear-gradient(120deg, hsl(25, 95%, 90%), hsl(25, 70%, 85%));
+}
+
+.progress-ring circle {
+  stroke-linecap: round;
+}
+
+.sidebar-icon {
+  @apply relative flex items-center justify-center h-12 w-12 mt-2 mb-2 mx-auto shadow-lg 
+  bg-primary text-white hover:bg-primary/90 rounded-xl hover:rounded-2xl
+  transition-all duration-300 ease-linear cursor-pointer;
+}
+
+.sidebar-tooltip {
+  @apply absolute w-auto p-2 m-2 min-w-max left-14 rounded-md shadow-md
+  text-white bg-primary text-xs font-bold
+  transition-all duration-100 scale-0 origin-left;
+}
+
+.sidebar-icon:hover .sidebar-tooltip {
+  @apply scale-100;
+}
+
+.stat-card {
+  @apply relative overflow-hidden rounded-2xl p-6 shadow-sm;
+}
+
+.stat-card-icon {
+  @apply absolute -right-4 -top-4 opacity-20 text-white;
+}
+
+.card-gradient-overlay {
+  @apply absolute inset-0 bg-gradient-to-r from-transparent to-black/5 pointer-events-none;
+}
+
+.card-hover {
+  @apply transition-all duration-300 hover:shadow-md hover:-translate-y-1;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.chart-container {
+  width: 100%;
+  height: 250px;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
