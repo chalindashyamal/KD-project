@@ -1,12 +1,118 @@
+
+"use client"
+
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
-import { Heart, Users, Calendar, FileText, Clock, CheckCircle, HelpCircle, ArrowRight } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Heart, Users, Calendar, FileText, Clock, CheckCircle, HelpCircle, ArrowRight, MessageSquare } from "lucide-react"
+
+interface Donor {
+  id: number
+  name: string
+  bloodType: string
+  contact: string
+  relationship: string
+  healthStatus: string
+  status: string
+  messages: { sender: string; content: string; timestamp: string }[]
+}
 
 export default function DonorProgramPage() {
+  const [showDonorForm, setShowDonorForm] = useState(false)
+  const [donors, setDonors] = useState<Donor[]>([
+    {
+      id: 1,
+      name: "Sarah Doe",
+      bloodType: "A+",
+      contact: "sarah.doe@example.com",
+      relationship: "Sister",
+      healthStatus: "Good",
+      status: "Testing Phase",
+      messages: [],
+    },
+    {
+      id: 2,
+      name: "Michael Smith",
+      bloodType: "O+",
+      contact: "michael.smith@example.com",
+      relationship: "Friend",
+      healthStatus: "Good",
+      status: "Initial Screening",
+      messages: [],
+    },
+  ])
+  const [newDonor, setNewDonor] = useState({
+    name: "",
+    bloodType: "",
+    contact: "",
+    relationship: "",
+    healthStatus: "",
+  })
+  const [selectedDonorId, setSelectedDonorId] = useState<number | null>(null)
+  const [newMessage, setNewMessage] = useState("")
+
+  const handleDonorInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setNewDonor((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleDonorSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const newId = Math.max(...donors.map((d) => d.id), 0) + 1
+    setDonors([
+      ...donors,
+      {
+        id: newId,
+        name: newDonor.name,
+        bloodType: newDonor.bloodType,
+        contact: newDonor.contact,
+        relationship: newDonor.relationship,
+        healthStatus: newDonor.healthStatus,
+        status: "Initial Screening",
+        messages: [],
+      },
+    ])
+    setNewDonor({
+      name: "",
+      bloodType: "",
+      contact: "",
+      relationship: "",
+      healthStatus: "",
+    })
+    setShowDonorForm(false)
+  }
+
+  const handleMessageSubmit = (donorId: number) => {
+    if (!newMessage.trim()) return
+    const updatedDonors = donors.map((donor) => {
+      if (donor.id === donorId) {
+        return {
+          ...donor,
+          messages: [
+            ...donor.messages,
+            {
+              sender: "Patient",
+              content: newMessage,
+              timestamp: new Date().toLocaleString(),
+            },
+          ],
+        }
+      }
+      return donor
+    })
+    setDonors(updatedDonors)
+    setNewMessage("")
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -14,10 +120,105 @@ export default function DonorProgramPage() {
           <h1 className="text-3xl font-bold tracking-tight">Kidney Donor Program</h1>
           <p className="text-muted-foreground">Information and resources for kidney transplantation</p>
         </div>
-        <Button className="gap-2">
-          <Heart className="h-4 w-4" />
-          Register as Donor
-        </Button>
+        <Dialog open={showDonorForm} onOpenChange={setShowDonorForm}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Heart className="h-4 w-4" />
+              Register as Donor
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Register as Donor</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleDonorSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={newDonor.name}
+                  onChange={handleDonorInputChange}
+                  placeholder="Enter full name"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bloodType">Blood Type</Label>
+                <Select
+                  name="bloodType"
+                  value={newDonor.bloodType}
+                  onValueChange={(value) => setNewDonor((prev) => ({ ...prev, bloodType: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select blood type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A+">A+</SelectItem>
+                    <SelectItem value="A-">A-</SelectItem>
+                    <SelectItem value="B+">B+</SelectItem>
+                    <SelectItem value="B-">B-</SelectItem>
+                    <SelectItem value="AB+">AB+</SelectItem>
+                    <SelectItem value="AB-">AB-</SelectItem>
+                    <SelectItem value="O+">O+</SelectItem>
+                    <SelectItem value="O-">O-</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contact">Contact (Email or Phone)</Label>
+                <Input
+                  id="contact"
+                  name="contact"
+                  value={newDonor.contact}
+                  onChange={handleDonorInputChange}
+                  placeholder="Enter email or phone"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="relationship">Relationship to Patient</Label>
+                <Select
+                  name="relationship"
+                  value={newDonor.relationship}
+                  onValueChange={(value) => setNewDonor((prev) => ({ ...prev, relationship: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select relationship" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Family">Family</SelectItem>
+                    <SelectItem value="Friend">Friend</SelectItem>
+                    <SelectItem value="Altruistic">Altruistic</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="healthStatus">Health Status</Label>
+                <Textarea
+                  id="healthStatus"
+                  name="healthStatus"
+                  value={newDonor.healthStatus}
+                  onChange={handleDonorInputChange}
+                  placeholder="Briefly describe your health status"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-4">
+                <Button variant="outline" type="button" onClick={() => setShowDonorForm(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Register</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -98,7 +299,7 @@ export default function DonorProgramPage() {
                 <div className="flex-1">
                   <h3 className="font-medium">Potential Living Donor Evaluation</h3>
                   <p className="text-sm text-muted-foreground">
-                    Two potential donors are currently undergoing evaluation for compatibility.
+                    {donors.length} potential donors are currently undergoing evaluation for compatibility.
                   </p>
                 </div>
                 <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
@@ -363,26 +564,83 @@ export default function DonorProgramPage() {
 
               <div className="bg-muted p-4 rounded-lg mt-4">
                 <h3 className="text-lg font-medium mb-2">Current Potential Donors</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Sarah Doe (Sister)</p>
-                      <p className="text-sm text-muted-foreground">Blood Type: A+</p>
-                    </div>
-                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                      Testing Phase
-                    </Badge>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Michael Smith (Friend)</p>
-                      <p className="text-sm text-muted-foreground">Blood Type: O+</p>
-                    </div>
-                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                      Initial Screening
-                    </Badge>
-                  </div>
+                <div className="space-y-4">
+                  {donors.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No potential donors registered yet.</p>
+                  ) : (
+                    donors.map((donor) => (
+                      <div key={donor.id}>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">{donor.name} ({donor.relationship})</p>
+                            <p className="text-sm text-muted-foreground">Blood Type: {donor.bloodType}</p>
+                            <p className="text-sm text-muted-foreground">Contact: {donor.contact}</p>
+                            <p className="text-sm text-muted-foreground">Health Status: {donor.healthStatus}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge
+                              variant="outline"
+                              className="bg-amber-50 text-amber-700 border-amber-200"
+                            >
+                              {donor.status}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedDonorId(donor.id)}
+                            >
+                              <MessageSquare className="mr-2 h-4 w-4" />
+                              Message
+                            </Button>
+                          </div>
+                        </div>
+                        {selectedDonorId === donor.id && (
+                          <div className="mt-4 p-4 bg-white rounded-lg border">
+                            <h4 className="text-sm font-medium mb-2">Conversation with {donor.name}</h4>
+                            <div className="space-y-2 max-h-40 overflow-y-auto mb-4">
+                              {donor.messages.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">No messages yet.</p>
+                              ) : (
+                                donor.messages.map((msg, index) => (
+                                  <div
+                                    key={index}
+                                    className={`flex ${
+                                      msg.sender === "Patient" ? "justify-end" : "justify-start"
+                                    }`}
+                                  >
+                                    <div
+                                      className={`p-2 rounded-lg text-sm ${
+                                        msg.sender === "Patient"
+                                          ? "bg-primary text-primary-foreground"
+                                          : "bg-muted"
+                                      }`}
+                                    >
+                                      <p>{msg.content}</p>
+                                      <p className="text-xs opacity-70">{msg.timestamp}</p>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Input
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                placeholder="Type your message..."
+                              />
+                              <Button
+                                onClick={() => handleMessageSubmit(donor.id)}
+                                disabled={!newMessage.trim()}
+                              >
+                                Send
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        <Separator className="my-3" />
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -578,4 +836,3 @@ export default function DonorProgramPage() {
     </div>
   )
 }
-
