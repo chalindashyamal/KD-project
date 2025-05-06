@@ -43,7 +43,7 @@ const patientFormSchema = z.object({
   notes: z.string().optional(),
 })
 
-type PatientFormValues = z.infer<typeof patientFormSchema>
+type PatientFormValues = z.input<typeof patientFormSchema>
 
 export default function AddPatientPage() {
   const router = useRouter()
@@ -57,12 +57,29 @@ export default function AddPatientPage() {
     },
   })
 
-  // Handle form submission
-  function onSubmit(data: PatientFormValues) {
-    // In a real app, you would save the patient to a database
-    console.log("Patient data:", data)
-    alert("Patient added successfully!")
-    router.push("/doctor/patients")
+  async function onSubmit(data: PatientFormValues) {
+    try {
+      const response = await fetch("/api/patient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Error saving patient:", errorData)
+        alert("Failed to add patient. Please try again.")
+        return
+      }
+
+      alert("Patient added successfully!")
+      router.push("/doctor/patients")
+    } catch (error) {
+      console.error("An error occurred:", error)
+      alert("An unexpected error occurred. Please try again.")
+    }
   }
 
   // Add a new allergy field

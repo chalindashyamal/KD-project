@@ -53,10 +53,32 @@ export default function MedicationsPage() {
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, this would save the medication to a database
-    console.log(values)
-    setOpen(false)
-    form.reset()
+    async function saveMedication() {
+      try {
+        const response = await fetch("/api/medications", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(values),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to save medication.");
+        }
+
+        const savedMedication = await response.json();
+        console.log("Medication saved:", savedMedication);
+
+        setOpen(false);
+        form.reset();
+      } catch (error) {
+        console.error("Error saving medication:", error);
+        alert("Failed to save medication.");
+      }
+    }
+
+    saveMedication();
   }
 
   return (
@@ -203,7 +225,7 @@ export default function MedicationsPage() {
         </TabsContent>
 
         <TabsContent value="reminders" className="mt-6">
-          <MedicationReminders fullView={true} />
+          <MedicationReminders />
         </TabsContent>
 
         <TabsContent value="history" className="mt-6">

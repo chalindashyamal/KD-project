@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,122 +12,54 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+interface DialysisSessions {
+  id: string; // Assuming `newId` is a string (e.g., UUID)
+  patientId: string;
+  patientName: string;
+  room: string;
+  machine: string;
+  scheduledStart: Date; // Assuming it's a Date object
+  scheduledEnd: Date; // Assuming it's a Date object
+  status: string;
+  startedAt: string; // Could be a Date if it's a timestamp
+  duration: number;
+  assignedTo: string;
+}
+
 export default function StaffDialysisPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("today")
   const [showScheduleForm, setShowScheduleForm] = useState(false)
-  const [dialysisSessions, setDialysisSessions] = useState([
-    {
-      id: 1,
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      room: "Dialysis Room 1",
-      machine: "Fresenius 5008",
-      scheduledStart: "10:00 AM",
-      scheduledEnd: "2:00 PM",
-      status: "In Progress",
-      startedAt: "10:05 AM",
-      duration: "4 hours",
-      assignedTo: "Nurse Emily Adams",
-    },
-    {
-      id: 2,
-      patientId: "PT-23456",
-      patientName: "Sarah Smith",
-      room: "Dialysis Room 2",
-      machine: "Fresenius 5008",
-      scheduledStart: "11:00 AM",
-      scheduledEnd: "3:00 PM",
-      status: "Scheduled",
-      startedAt: "-",
-      duration: "4 hours",
-      assignedTo: "Nurse Emily Adams",
-    },
-    {
-      id: 3,
-      patientId: "PT-56789",
-      patientName: "Robert Wilson",
-      room: "Dialysis Room 3",
-      machine: "Fresenius 5008",
-      scheduledStart: "2:00 PM",
-      scheduledEnd: "6:00 PM",
-      status: "Scheduled",
-      startedAt: "-",
-      duration: "4 hours",
-      assignedTo: "Nurse David Wilson",
-    },
-    {
-      id: 4,
-      patientId: "PT-34567",
-      patientName: "Mike Johnson",
-      room: "Dialysis Room 4",
-      machine: "Fresenius 5008",
-      scheduledStart: "3:00 PM",
-      scheduledEnd: "7:00 PM",
-      status: "Scheduled",
-      startedAt: "-",
-      duration: "4 hours",
-      assignedTo: "Nurse David Wilson",
-    },
-  ])
-  const [completedSessions] = useState([
-    {
-      id: 101,
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      room: "Dialysis Room 1",
-      machine: "Fresenius 5008",
-      date: "Apr 29, 2025",
-      startTime: "10:00 AM",
-      endTime: "2:05 PM",
-      duration: "4h 5m",
-      conductedBy: "Nurse Emily Adams",
-      status: "Completed",
-      notes: "Patient tolerated procedure well. No complications.",
-    },
-    {
-      id: 102,
-      patientId: "PT-23456",
-      patientName: "Sarah Smith",
-      room: "Dialysis Room 2",
-      machine: "Fresenius 5008",
-      date: "Apr 29, 2025",
-      startTime: "11:00 AM",
-      endTime: "3:10 PM",
-      duration: "4h 10m",
-      conductedBy: "Nurse Emily Adams",
-      status: "Completed",
-      notes: "Patient experienced mild cramping during last hour. Resolved with position change.",
-    },
-    {
-      id: 103,
-      patientId: "PT-56789",
-      patientName: "Robert Wilson",
-      room: "Dialysis Room 3",
-      machine: "Fresenius 5008",
-      date: "Apr 29, 2025",
-      startTime: "2:00 PM",
-      endTime: "6:00 PM",
-      duration: "4h",
-      conductedBy: "Nurse David Wilson",
-      status: "Completed",
-      notes: "Uneventful session.",
-    },
-    {
-      id: 104,
-      patientId: "PT-34567",
-      patientName: "Mike Johnson",
-      room: "Dialysis Room 4",
-      machine: "Fresenius 5008",
-      date: "Apr 29, 2025",
-      startTime: "3:00 PM",
-      endTime: "7:05 PM",
-      duration: "4h 5m",
-      conductedBy: "Nurse David Wilson",
-      status: "Completed",
-      notes: "Patient's blood pressure dropped slightly at 2-hour mark. Stabilized after fluid adjustment.",
-    },
-  ])
+  const [dialysisSessions, setDialysisSessions] = useState<DialysisSessions[]>([])
+
+  useEffect(() => {
+    async function fetchDialysisSessions() {
+      try {
+        const response = await fetch("/api/dialysis-sessions")
+        if (!response.ok) {
+          throw new Error("Failed to fetch dialysis sessions")
+        }
+        const data = await response.json()
+        setDialysisSessions(data.map((session: any) => ({
+          ...session,
+          patientName: `${session.patient.firstName} ${session.patient.lastName}`,
+          scheduledStart: new Date(session.scheduledStart),
+          scheduledEnd: new Date(session.scheduledEnd),
+          status: session.status,
+          assignedTo: session.assignedTo,
+          duration: session.duration,
+          room: session.room,
+          machine: session.machine,
+        })))
+      } catch (error) {
+        console.error("Error fetching dialysis sessions:", error)
+      }
+    }
+
+    fetchDialysisSessions()
+  }, [])
+
+  const completedSessions = dialysisSessions.filter((session) => session.status === "Completed")
 
   const [newSession, setNewSession] = useState({
     patientName: "",
@@ -161,36 +93,53 @@ export default function StaffDialysisPage() {
     setNewSession((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const newId = Math.max(...dialysisSessions.map((s) => s.id)) + 1
-    setDialysisSessions([
-      ...dialysisSessions,
-      {
-        id: newId,
-        patientId: newSession.patientId,
-        patientName: newSession.patientName,
-        room: newSession.room,
-        machine: newSession.machine,
-        scheduledStart: newSession.scheduledStart,
-        scheduledEnd: newSession.scheduledEnd,
-        status: "Scheduled",
-        startedAt: "-",
-        duration: newSession.duration,
-        assignedTo: newSession.assignedTo,
-      },
-    ])
-    setNewSession({
-      patientName: "",
-      patientId: "",
-      room: "",
-      machine: "",
-      scheduledStart: "",
-      scheduledEnd: "",
-      duration: "",
-      assignedTo: "",
-    })
-    setShowScheduleForm(false)
+
+    try {
+      const response = await fetch("/api/dialysis-sessions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          patientId: newSession.patientId,
+          patientName: newSession.patientName,
+          room: newSession.room,
+          machine: newSession.machine,
+          scheduledStart: newSession.scheduledStart,
+          scheduledEnd: newSession.scheduledEnd,
+          status: "Scheduled",
+          startedAt: "-",
+          duration: newSession.duration,
+          assignedTo: newSession.assignedTo,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to create a new dialysis session")
+      }
+
+      const createdSession = await response.json()
+
+      // Update local state with the newly created session
+      setDialysisSessions((prevSessions) => [...prevSessions, createdSession])
+
+      // Reset the form
+      setNewSession({
+        patientName: "",
+        patientId: "",
+        room: "",
+        machine: "",
+        scheduledStart: "",
+        scheduledEnd: "",
+        duration: "",
+        assignedTo: "",
+      })
+      setShowScheduleForm(false)
+    } catch (error) {
+      console.error("Error creating dialysis session:", error)
+    }
   }
 
   return (
@@ -394,7 +343,7 @@ export default function StaffDialysisPage() {
                             <div className="flex items-center">
                               <Clock className="mr-1 h-3 w-3 text-muted-foreground" />
                               <span>
-                                {session.scheduledStart} - {session.scheduledEnd}
+                                {session.scheduledStart.toLocaleTimeString()} - {session.scheduledEnd.toLocaleTimeString()}
                               </span>
                             </div>
                             <div className="text-xs text-muted-foreground">Duration: {session.duration}</div>
@@ -479,14 +428,14 @@ export default function StaffDialysisPage() {
                           <TableCell>
                             <div className="flex items-center">
                               <Calendar className="mr-1 h-3 w-3 text-muted-foreground" />
-                              <span>{session.date}</span>
+                              <span>{session.startedAt}</span>
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              {session.startTime} - {session.endTime}
+                              {session.scheduledStart.toLocaleString()} - {session.scheduledEnd.toLocaleString()}
                             </div>
                           </TableCell>
                           <TableCell>{session.duration}</TableCell>
-                          <TableCell>{session.conductedBy}</TableCell>
+                          <TableCell>{session.assignedTo}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="flex items-center gap-1">
                               <Droplets className="h-3 w-3 text-blue-500" />

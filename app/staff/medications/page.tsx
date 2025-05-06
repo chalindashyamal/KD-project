@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,139 +15,79 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+type MedicationAPI = {
+  id: number
+  patientId: string
+  patient: { firstName: string; lastName: string }
+  name: string
+  dosage: string
+  times: string[]
+  instructions: string
+  status: { time: string; taken: boolean, AdministeredBy?: string }[]
+}
+
+type Medication = {
+  id: number
+  patientId: string
+  patientName: string
+  name: string
+  dosage: string
+  times: string[]
+  instructions: string
+  status: { time: string; taken: boolean; AdministeredBy?: string }[]
+}
+
+type MedicationHistoryItem = {
+  id: number
+  patientId: string
+  patientName: string
+  medication: string
+  dosage: string
+  administeredBy: string
+  administeredAt: string
+  status: string
+  notes?: string
+}
+
 export default function StaffMedicationsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("upcoming")
   const [showAdministerForm, setShowAdministerForm] = useState(false)
-  const [medications] = useState([
-    {
-      id: 1,
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      medication: "Tacrolimus",
-      dosage: "2mg",
-      frequency: "Twice daily",
-      route: "Oral",
-      startDate: "Apr 15, 2025",
-      endDate: "Ongoing",
-      status: "Active",
-      nextDue: "11:00 AM",
-      lastAdministered: "Apr 30, 2025, 7:00 AM",
-    },
-    {
-      id: 2,
-      patientId: "PT-23456",
-      patientName: "Sarah Smith",
-      medication: "Mycophenolate",
-      dosage: "500mg",
-      frequency: "Twice daily",
-      route: "Oral",
-      startDate: "Apr 10, 2025",
-      endDate: "Ongoing",
-      status: "Active",
-      nextDue: "11:30 AM",
-      lastAdministered: "Apr 30, 2025, 7:30 AM",
-    },
-    {
-      id: 3,
-      patientId: "PT-34567",
-      patientName: "Mike Johnson",
-      medication: "Prednisone",
-      dosage: "10mg",
-      frequency: "Once daily",
-      route: "Oral",
-      startDate: "Apr 5, 2025",
-      endDate: "May 5, 2025",
-      status: "Active",
-      nextDue: "8:00 AM (Tomorrow)",
-      lastAdministered: "Apr 30, 2025, 8:00 AM",
-    },
-    {
-      id: 4,
-      patientId: "PT-45678",
-      patientName: "Emily Davis",
-      medication: "Epoetin alfa",
-      dosage: "4000 units",
-      frequency: "Three times weekly",
-      route: "Subcutaneous",
-      startDate: "Apr 1, 2025",
-      endDate: "Ongoing",
-      status: "Active",
-      nextDue: "2:00 PM",
-      lastAdministered: "Apr 28, 2025, 2:00 PM",
-    },
-    {
-      id: 5,
-      patientId: "PT-56789",
-      patientName: "Robert Wilson",
-      medication: "Calcium carbonate",
-      dosage: "500mg",
-      frequency: "Three times daily with meals",
-      route: "Oral",
-      startDate: "Mar 15, 2025",
-      endDate: "Ongoing",
-      status: "Active",
-      nextDue: "12:00 PM",
-      lastAdministered: "Apr 30, 2025, 8:00 AM",
-    },
-  ])
-  const [medicationHistory, setMedicationHistory] = useState([
-    {
-      id: 1,
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      medication: "Tacrolimus",
-      dosage: "2mg",
-      administeredBy: "Nurse Emily Adams",
-      administeredAt: "Apr 30, 2025, 7:00 AM",
-      status: "Administered",
-      notes: "Patient tolerated well",
-    },
-    {
-      id: 2,
-      patientId: "PT-23456",
-      patientName: "Sarah Smith",
-      medication: "Mycophenolate",
-      dosage: "500mg",
-      administeredBy: "Nurse Emily Adams",
-      administeredAt: "Apr 30, 2025, 7:30 AM",
-      status: "Administered",
-      notes: "",
-    },
-    {
-      id: 3,
-      patientId: "PT-34567",
-      patientName: "Mike Johnson",
-      medication: "Prednisone",
-      dosage: "10mg",
-      administeredBy: "Nurse Emily Adams",
-      administeredAt: "Apr 30, 2025, 8:00 AM",
-      status: "Administered",
-      notes: "Patient reported mild stomach discomfort",
-    },
-    {
-      id: 4,
-      patientId: "PT-56789",
-      patientName: "Robert Wilson",
-      medication: "Calcium carbonate",
-      dosage: "500mg",
-      administeredBy: "Nurse Emily Adams",
-      administeredAt: "Apr 30, 2025, 8:00 AM",
-      status: "Administered",
-      notes: "",
-    },
-    {
-      id: 5,
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      medication: "Tacrolimus",
-      dosage: "2mg",
-      administeredBy: "Nurse David Wilson",
-      administeredAt: "Apr 29, 2025, 7:00 PM",
-      status: "Administered",
-      notes: "",
-    },
-  ])
+  const [medications, setMedications] = useState<Medication[]>([])
+  const [medicationsVersion, updateMedicationsVersion] = useState(1)
+
+  const [medicationHistory, setMedicationHistory] = useState<MedicationHistoryItem[]>([])
+
+  useEffect(() => {
+    async function fetchMedications() {
+      try {
+        const response = await fetch("/api/medication-schedule")
+        if (!response.ok) {
+          throw new Error("Failed to fetch medications")
+        }
+        const data = await response.json() as MedicationAPI[]
+        setMedications(data.map((med) => ({
+          ...med,
+          patientName: `${med.patient.firstName} ${med.patient.lastName}`,
+        })))
+        setMedicationHistory(data.map((med) => ({
+          id: med.id,
+          patientId: med.patientId,
+          patientName: `${med.patient.firstName} ${med.patient.lastName}`,
+          medication: med.name,
+          dosage: med.dosage,
+          administeredBy: med.status[0].AdministeredBy || "",
+          administeredAt: format(new Date(med.status[0].time), "MMM d, yyyy, h:mm a"),
+          status: med.status[0].taken ? "Administered" : "Pending",
+          notes: med.instructions,
+        })))
+      } catch (error) {
+        console.error("Error fetching medications:", error)
+      }
+    }
+
+    fetchMedications()
+  }, [medicationsVersion])
 
   const [newAdministration, setNewAdministration] = useState({
     patientName: "",
@@ -165,7 +105,7 @@ export default function StaffMedicationsPage() {
     (med) =>
       med.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       med.patientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      med.medication.toLowerCase().includes(searchQuery.toLowerCase()),
+      med.name.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   // Filter medication history based on search query
@@ -181,34 +121,44 @@ export default function StaffMedicationsPage() {
     setNewAdministration((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const newId = Math.max(...medicationHistory.map((h) => h.id)) + 1
-    setMedicationHistory([
-      ...medicationHistory,
-      {
-        id: newId,
-        patientId: newAdministration.patientId,
-        patientName: newAdministration.patientName,
-        medication: newAdministration.medication,
-        dosage: newAdministration.dosage,
-        administeredBy: newAdministration.administeredBy,
-        administeredAt: format(newAdministration.administeredAt, "MMM d, yyyy, h:mm a"),
-        status: "Administered",
-        notes: newAdministration.notes,
-      },
-    ])
-    setNewAdministration({
-      patientName: "",
-      patientId: "",
-      medication: "",
-      dosage: "",
-      route: "",
-      administeredBy: "",
-      administeredAt: new Date(),
-      notes: "",
-    })
-    setShowAdministerForm(false)
+
+    try {
+      const response = await fetch("/api/medication-schedule", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          patientId: newAdministration.patientId,
+          medication: newAdministration.medication,
+          time: newAdministration.administeredAt,
+          administeredBy: newAdministration.administeredBy,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to mark medication as taken")
+      }
+
+      updateMedicationsVersion((prev) => prev + 1) // Trigger re-fetch
+
+      setNewAdministration({
+        patientName: "",
+        patientId: "",
+        medication: "",
+        dosage: "",
+        route: "",
+        administeredBy: "",
+        administeredAt: new Date(),
+        notes: "",
+      })
+      setShowAdministerForm(false)
+    } catch (error) {
+      console.error("Error marking medication as taken:", error)
+      alert("An error occurred. Please try again.")
+    }
   }
 
   return (
@@ -416,22 +366,21 @@ export default function StaffMedicationsPage() {
                             <div className="text-xs text-muted-foreground">{med.patientId}</div>
                           </TableCell>
                           <TableCell>
-                            <div className="font-medium">{med.medication}</div>
-                            <div className="text-xs text-muted-foreground">{med.route}</div>
+                            <div className="font-medium">{med.name}</div>
+                            <div className="text-xs text-muted-foreground"></div>
                           </TableCell>
                           <TableCell>
                             <div>{med.dosage}</div>
-                            <div className="text-xs text-muted-foreground">{med.frequency}</div>
+                            <div className="text-xs text-muted-foreground">{med.instructions}</div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center">
                               <Clock className="mr-1 h-3 w-3 text-muted-foreground" />
-                              <span>{med.nextDue}</span>
+                              <span>{med.status[0].time}</span>
                             </div>
-                            <div className="text-xs text-muted-foreground">Last: {med.lastAdministered}</div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={med.status === "Active" ? "default" : "secondary"}>{med.status}</Badge>
+                            <Badge variant="default">Active</Badge>
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">

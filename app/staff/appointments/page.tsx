@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,79 +14,24 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
+interface Appointment {
+  id: string
+  patientName: string
+  patientId: string
+  type: string
+  date: Date
+  time: string
+  duration: string
+  location: string
+  status: string
+}
+
 export default function DoctorAppointmentsPage() {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [showScheduleForm, setShowScheduleForm] = useState(false)
-  const [appointments, setAppointments] = useState([
-    {
-      id: 1,
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      type: "Nephrology Consultation",
-      date: new Date(2025, 3, 30),
-      time: "10:30 AM",
-      duration: "30 min",
-      location: "Exam Room 3",
-      status: "Checked In",
-    },
-    {
-      id: 2,
-      patientId: "PT-23456",
-      patientName: "Sarah Smith",
-      type: "Follow-up",
-      date: new Date(2025, 3, 30),
-      time: "11:15 AM",
-      duration: "20 min",
-      location: "Exam Room 1",
-      status: "Scheduled",
-    },
-    {
-      id: 3,
-      patientId: "PT-34567",
-      patientName: "Mike Johnson",
-      type: "Transplant Evaluation",
-      date: new Date(2025, 3, 30),
-      time: "1:00 PM",
-      duration: "45 min",
-      location: "Exam Room 2",
-      status: "Scheduled",
-    },
-    {
-      id: 4,
-      patientId: "PT-45678",
-      patientName: "Emily Davis",
-      type: "New Patient",
-      date: new Date(2025, 3, 30),
-      time: "2:30 PM",
-      duration: "60 min",
-      location: "Exam Room 3",
-      status: "Scheduled",
-    },
-    {
-      id: 5,
-      patientId: "PT-56789",
-      patientName: "Robert Wilson",
-      date: new Date(2025, 4, 1),
-      type: "Dialysis Follow-up",
-      time: "9:00 AM",
-      duration: "30 min",
-      location: "Exam Room 1",
-      status: "Scheduled",
-    },
-    {
-      id: 6,
-      patientId: "PT-67890",
-      patientName: "Jennifer Brown",
-      date: new Date(2025, 4, 1),
-      type: "Medication Review",
-      time: "10:00 AM",
-      duration: "20 min",
-      location: "Exam Room 2",
-      status: "Scheduled",
-    },
-  ])
+  const [appointments, setAppointments] = useState<Appointment[]>([])
 
   const [newAppointment, setNewAppointment] = useState({
     patientName: "",
@@ -97,6 +42,25 @@ export default function DoctorAppointmentsPage() {
     duration: "",
     location: "",
   })
+
+  useEffect(() => {
+    async function fetchAppointments() {
+      try {
+        const response = await fetch("/api/appointments")
+        const data = await response.json()
+        setAppointments(data.map((appointment: any) => ({
+          ...appointment,
+          patientName: `${appointment.patient.firstName} ${appointment.patient.lastName}`,
+          date: new Date(appointment.date), // Convert string date to Date object
+          status: appointment.status || "scheduled", // Default to "scheduled" if status is not provided
+        })))
+      } catch (error) {
+        console.error("Error fetching appointments:", error)
+      }
+    }
+
+    fetchAppointments()
+  }, [])
 
   // Filter appointments based on selected date, search query, and status filter
   const filteredAppointments = appointments.filter((appointment) => {
@@ -138,33 +102,39 @@ export default function DoctorAppointmentsPage() {
     setNewAppointment((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const newId = Math.max(...appointments.map((a) => a.id)) + 1
-    setAppointments([
-      ...appointments,
-      {
-        id: newId,
-        patientId: newAppointment.patientId,
-        patientName: newAppointment.patientName,
-        type: newAppointment.type,
-        date: newAppointment.date,
-        time: newAppointment.time,
-        duration: newAppointment.duration,
-        location: newAppointment.location,
-        status: "Scheduled",
-      },
-    ])
-    setNewAppointment({
-      patientName: "",
-      patientId: "",
-      type: "",
-      date: new Date(),
-      time: "",
-      duration: "",
-      location: "",
-    })
-    setShowScheduleForm(false)
+    try {
+      const response = await fetch("/api/appointments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...newAppointment,
+          date: newAppointment.date, // Convert date to ISO string
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to create appointment")
+      }
+
+      const createdAppointment = await response.json()
+      setAppointments((prev) => [...prev, createdAppointment]) // Add the new appointment to the list
+      setNewAppointment({
+        patientName: "",
+        patientId: "",
+        type: "",
+        date: new Date(),
+        time: "",
+        duration: "",
+        location: "",
+      })
+      setShowScheduleForm(false)
+    } catch (error) {
+      console.error("Error creating appointment:", error)
+    }
   }
 
   return (
@@ -404,7 +374,7 @@ export default function DoctorAppointmentsPage() {
                             <Clock className="mr-1 h-3 w-3 text-muted-foreground" />
                             <span>{appointment.time}</span>
                           </div>
-                          <div className="text-xs text-muted-foreground">({appointment.duration})</div>
+                          <div className="text-xs text-muted-foreground">{appointment.duration ?? ''}</div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center">

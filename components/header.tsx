@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { useRouter } from "next/navigation"
 
 const routes = [
   {
@@ -85,6 +86,8 @@ export default function Header() {
     return route ? route.label : "KidneyCare"
   }
 
+  const router = useRouter();
+
   return (
     <header className="h-16 border-b bg-background flex items-center px-4 md:px-6">
       <Sheet>
@@ -111,11 +114,10 @@ export default function Header() {
                   <Link
                     key={route.href}
                     href={route.href}
-                    className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg ${
-                      pathname === route.href
-                        ? "bg-primary-foreground/10 text-white"
-                        : "text-primary-foreground/80 hover:bg-primary-foreground/5 hover:text-white"
-                    }`}
+                    className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg ${pathname === route.href
+                      ? "bg-primary-foreground/10 text-white"
+                      : "text-primary-foreground/80 hover:bg-primary-foreground/5 hover:text-white"
+                      }`}
                   >
                     <route.icon className="h-5 w-5 mr-3" />
                     {route.label}
@@ -224,7 +226,15 @@ export default function Header() {
               <span>Settings</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={async () => {
+                const response = await fetch("/api/logout", { method: "POST" });
+                if (response.ok) {
+                  router.push("/login");
+                }
+              }}
+            >
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>

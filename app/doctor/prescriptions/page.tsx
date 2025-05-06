@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,84 +14,28 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
 
+
+type Prescription = {
+  id: string;
+  patientName: string;
+  patientId: string;
+  medication: string;
+  dosage: string;
+  frequency: string;
+  prescribedDate: string;
+  expiryDate: string;
+  refills: number;
+  status: string;
+};
+
+
 export default function DoctorPrescriptionsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [showPrescriptionForm, setShowPrescriptionForm] = useState(false)
-  const [prescriptions, setPrescriptions] = useState([
-    {
-      id: 1,
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      medication: "Tacrolimus",
-      dosage: "2mg",
-      frequency: "Twice daily",
-      prescribedDate: "April 15, 2025",
-      expiryDate: "October 15, 2025",
-      refills: 3,
-      status: "Active",
-    },
-    {
-      id: 2,
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      medication: "Mycophenolate",
-      dosage: "500mg",
-      frequency: "Twice daily",
-      prescribedDate: "April 15, 2025",
-      expiryDate: "October 15, 2025",
-      refills: 2,
-      status: "Active",
-    },
-    {
-      id: 3,
-      patientId: "PT-23456",
-      patientName: "Sarah Smith",
-      medication: "Prednisone",
-      dosage: "5mg",
-      frequency: "Once daily",
-      prescribedDate: "March 20, 2025",
-      expiryDate: "September 20, 2025",
-      refills: 5,
-      status: "Active",
-    },
-    {
-      id: 4,
-      patientId: "PT-34567",
-      patientName: "Mike Johnson",
-      medication: "Tacrolimus",
-      dosage: "1mg",
-      frequency: "Twice daily",
-      prescribedDate: "February 10, 2025",
-      expiryDate: "August 10, 2025",
-      refills: 0,
-      status: "Needs Refill",
-    },
-    {
-      id: 5,
-      patientId: "PT-45678",
-      patientName: "Emily Davis",
-      medication: "Calcium Acetate",
-      dosage: "667mg",
-      frequency: "With meals",
-      prescribedDate: "April 5, 2025",
-      expiryDate: "October 5, 2025",
-      refills: 4,
-      status: "Active",
-    },
-    {
-      id: 6,
-      patientId: "PT-56789",
-      patientName: "Robert Wilson",
-      medication: "Ciprofloxacin",
-      dosage: "500mg",
-      frequency: "Twice daily for 7 days",
-      prescribedDate: "April 10, 2025",
-      expiryDate: "April 17, 2025",
-      refills: 0,
-      status: "Completed",
-    },
-  ])
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
 
   const [newPrescription, setNewPrescription] = useState({
     patientName: "",
@@ -103,6 +47,38 @@ export default function DoctorPrescriptionsPage() {
     expiryDate: new Date(),
     refills: "0",
   })
+
+  useEffect(() => {
+    async function fetchPrescriptions() {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/prescriptions");
+        if (!response.ok) {
+          throw new Error("Failed to fetch prescriptions.");
+        }
+        const data = await response.json();
+        setPrescriptions(data.map((prescription: any) => ({
+          ...prescription,
+          patientName: `${prescription.patient.firstName} ${prescription.patient.lastName}`,
+        })));
+      } catch (err: any) {
+        console.error("Error fetching prescriptions:", err.message);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPrescriptions();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   // Filter prescriptions based on search query and status filter
   const filteredPrescriptions = prescriptions.filter((prescription) => {
@@ -136,36 +112,54 @@ export default function DoctorPrescriptionsPage() {
     setNewPrescription((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const newId = Math.max(...prescriptions.map((p) => p.id)) + 1
-    setPrescriptions([
-      ...prescriptions,
-      {
-        id: newId,
-        patientId: newPrescription.patientId,
-        patientName: newPrescription.patientName,
-        medication: newPrescription.medication,
-        dosage: newPrescription.dosage,
-        frequency: newPrescription.frequency,
-        prescribedDate: format(newPrescription.prescribedDate, "MMMM d, yyyy"),
-        expiryDate: format(newPrescription.expiryDate, "MMMM d, yyyy"),
-        refills: parseInt(newPrescription.refills) || 0,
-        status: parseInt(newPrescription.refills) > 0 ? "Active" : "Needs Refill",
-      },
-    ])
-    setNewPrescription({
-      patientName: "",
-      patientId: "",
-      medication: "",
-      dosage: "",
-      frequency: "",
-      prescribedDate: new Date(),
-      expiryDate: new Date(),
-      refills: "0",
-    })
-    setShowPrescriptionForm(false)
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch("/api/prescriptions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          patientId: newPrescription.patientId,
+          patientName: newPrescription.patientName,
+          medication: newPrescription.medication,
+          dosage: newPrescription.dosage,
+          frequency: newPrescription.frequency,
+          prescribedDate: newPrescription.prescribedDate.toISOString(),
+          expiryDate: newPrescription.expiryDate.toISOString(),
+          refills: newPrescription.refills,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create prescription.");
+      }
+
+      const createdPrescription = await response.json();
+      createdPrescription.patientName = `${createdPrescription.patient.firstName} ${createdPrescription.patient.lastName}`;
+
+      // Update the local state with the new prescription
+      setPrescriptions([...prescriptions, createdPrescription]);
+
+      // Reset the form
+      setNewPrescription({
+        patientName: "",
+        patientId: "",
+        medication: "",
+        dosage: "",
+        frequency: "",
+        prescribedDate: new Date(),
+        expiryDate: new Date(),
+        refills: "0",
+      });
+      setShowPrescriptionForm(false);
+    } catch (error) {
+      console.error("Error creating prescription:", error);
+      alert("Failed to create prescription.");
+    }
+  };
 
   return (
     <div className="space-y-6">

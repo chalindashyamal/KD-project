@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,83 +15,53 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
 
+type Patient = {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  diagnosis: string;
+  status: string;
+  lastVisit: string; // ISO date string
+  nextAppointment: string; // ISO date string
+}
+
 export default function StaffPatientsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [sortBy, setSortBy] = useState("name")
   const [showCheckInForm, setShowCheckInForm] = useState(false)
-  const [patients, setPatients] = useState([
-    {
-      id: "PT-12345",
-      name: "John Doe",
-      age: 50,
-      gender: "Male",
-      diagnosis: "End-Stage Renal Disease",
-      status: "Active",
-      lastVisit: "Apr 30, 2025",
-      nextAppointment: "May 15, 2025",
-    },
-    {
-      id: "PT-23456",
-      name: "Sarah Smith",
-      age: 45,
-      gender: "Female",
-      diagnosis: "Chronic Kidney Disease Stage 4",
-      status: "Active",
-      lastVisit: "Apr 28, 2025",
-      nextAppointment: "May 20, 2025",
-    },
-    {
-      id: "PT-34567",
-      name: "Mike Johnson",
-      age: 62,
-      gender: "Male",
-      diagnosis: "Kidney Transplant Recipient",
-      status: "Active",
-      lastVisit: "Apr 25, 2025",
-      nextAppointment: "May 25, 2025",
-    },
-    {
-      id: "PT-45678",
-      name: "Emily Davis",
-      age: 38,
-      gender: "Female",
-      diagnosis: "Polycystic Kidney Disease",
-      status: "Active",
-      lastVisit: "Apr 22, 2025",
-      nextAppointment: "May 22, 2025",
-    },
-    {
-      id: "PT-56789",
-      name: "Robert Wilson",
-      age: 55,
-      gender: "Male",
-      diagnosis: "Diabetic Nephropathy",
-      status: "Hospitalized",
-      lastVisit: "Apr 20, 2025",
-      nextAppointment: "May 10, 2025",
-    },
-    {
-      id: "PT-67890",
-      name: "Jennifer Brown",
-      age: 42,
-      gender: "Female",
-      diagnosis: "Lupus Nephritis",
-      status: "Active",
-      lastVisit: "Apr 18, 2025",
-      nextAppointment: "May 18, 2025",
-    },
-    {
-      id: "PT-78901",
-      name: "David Lee",
-      age: 70,
-      gender: "Male",
-      diagnosis: "Glomerulonephritis",
-      status: "Inactive",
-      lastVisit: "Apr 15, 2025",
-      nextAppointment: "May 5, 2025",
-    },
-  ])
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [patientsVersion, updatePatientsVersion] = useState(1);
+
+  // Fetch patients from the API
+  useEffect(() => {
+    async function fetchPatients() {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/patients");
+        if (!response.ok) {
+          throw new Error("Failed to fetch patients");
+        }
+        const data = await response.json();
+        setPatients(data.map((patient: any) => ({
+          ...patient,
+          name: `${patient.firstName} ${patient.lastName}`,
+          age: new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear(),
+          status: "Stable",
+          diagnosis: patient.primaryDiagnosis,
+        })));
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPatients();
+  }, [patientsVersion]);
 
   const [newCheckIn, setNewCheckIn] = useState({
     patientName: "",
@@ -150,10 +120,10 @@ export default function StaffPatientsPage() {
       prevPatients.map((patient) =>
         patient.id === newCheckIn.patientId
           ? {
-              ...patient,
-              status: "Active",
-              lastVisit: format(newCheckIn.checkInDate, "MMM d, yyyy"),
-            }
+            ...patient,
+            status: "Active",
+            lastVisit: format(newCheckIn.checkInDate, "MMM d, yyyy"),
+          }
           : patient
       )
     )
@@ -165,6 +135,14 @@ export default function StaffPatientsPage() {
       checkInDate: new Date(),
     })
     setShowCheckInForm(false)
+  }
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
   }
 
   return (

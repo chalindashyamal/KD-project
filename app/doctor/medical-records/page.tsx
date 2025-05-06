@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,66 +14,21 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
 
+type PatientRecord = {
+  id: number;
+  patientId: string;
+  patientName: string;
+  recordType: string;
+  date: string; // ISO date string
+  provider: string;
+  description: string;
+};
+
 export default function DoctorMedicalRecordsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [recordTypeFilter, setRecordTypeFilter] = useState("all")
   const [showRecordForm, setShowRecordForm] = useState(false)
-  const [medicalRecords, setMedicalRecords] = useState([
-    {
-      id: 1,
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      recordType: "Progress Note",
-      date: "April 28, 2025",
-      provider: "Dr. James Wilson",
-      description: "Follow-up appointment for ESRD management",
-    },
-    {
-      id: 2,
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      recordType: "Dialysis Report",
-      date: "April 25, 2025",
-      provider: "Nurse Emily Adams",
-      description: "Routine hemodialysis session report",
-    },
-    {
-      id: 3,
-      patientId: "PT-23456",
-      patientName: "Sarah Smith",
-      recordType: "Progress Note",
-      date: "April 27, 2025",
-      provider: "Dr. James Wilson",
-      description: "Evaluation of hypertension management",
-    },
-    {
-      id: 4,
-      patientId: "PT-34567",
-      patientName: "Mike Johnson",
-      recordType: "Transplant Evaluation",
-      date: "April 26, 2025",
-      provider: "Dr. Priya Patel",
-      description: "Initial transplant candidacy assessment",
-    },
-    {
-      id: 5,
-      patientId: "PT-45678",
-      patientName: "Emily Davis",
-      recordType: "Nutrition Consultation",
-      date: "April 24, 2025",
-      provider: "Dietitian Sarah Johnson",
-      description: "Dietary recommendations for CKD management",
-    },
-    {
-      id: 6,
-      patientId: "PT-56789",
-      patientName: "Robert Wilson",
-      recordType: "Procedure Note",
-      date: "April 20, 2025",
-      provider: "Dr. Lisa Chen",
-      description: "AV fistula creation procedure",
-    },
-  ])
+  const [medicalRecords, setMedicalRecords] = useState<PatientRecord[]>([])
 
   const [newRecord, setNewRecord] = useState({
     patientName: "",
@@ -83,6 +38,41 @@ export default function DoctorMedicalRecordsPage() {
     provider: "",
     description: "",
   })
+
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  useEffect(() => {
+    async function fetchMedicalRecords() {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/medical-records");
+        if (!response.ok) {
+          throw new Error("Failed to fetch medical records.");
+        }
+        const data = await response.json();
+        setMedicalRecords(data.map((record: any) => ({
+          ...record,
+          patientName: `${record.patient.firstName} ${record.patient.lastName}`,
+        })));
+      } catch (err: any) {
+        console.error("Error fetching medical records:", err.message);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchMedicalRecords();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   // Filter medical records based on search query and record type filter
   const filteredRecords = medicalRecords.filter((record) => {
@@ -102,31 +92,50 @@ export default function DoctorMedicalRecordsPage() {
     setNewRecord((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const newId = Math.max(...medicalRecords.map((r) => r.id)) + 1
-    setMedicalRecords([
-      ...medicalRecords,
-      {
-        id: newId,
-        patientId: newRecord.patientId,
-        patientName: newRecord.patientName,
-        recordType: newRecord.recordType,
-        date: format(newRecord.date, "MMMM d, yyyy"),
-        provider: newRecord.provider,
-        description: newRecord.description,
-      },
-    ])
-    setNewRecord({
-      patientName: "",
-      patientId: "",
-      recordType: "",
-      date: new Date(),
-      provider: "",
-      description: "",
-    })
-    setShowRecordForm(false)
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch("/api/medical-records", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          patientId: newRecord.patientId,
+          patientName: newRecord.patientName,
+          recordType: newRecord.recordType,
+          date: newRecord.date.toISOString(),
+          provider: newRecord.provider,
+          description: newRecord.description,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create medical record.");
+      }
+
+      const createdRecord = await response.json();
+      createdRecord.patientName = `${createdRecord.patient.firstName} ${createdRecord.patient.lastName}`;
+
+      // Update the local state with the new medical record
+      setMedicalRecords([...medicalRecords, createdRecord]);
+
+      // Reset the form
+      setNewRecord({
+        patientName: "",
+        patientId: "",
+        recordType: "",
+        date: new Date(),
+        provider: "",
+        description: "",
+      });
+      setShowRecordForm(false);
+    } catch (error) {
+      console.error("Error creating medical record:", error);
+      alert("Failed to create medical record.");
+    }
+  };
 
   return (
     <div className="space-y-6">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,115 +10,54 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Search, Filter, MoreHorizontal, FileText, Calendar, Pill, Eye, Edit, Trash2, Plus } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
-// Sample patient data
-const patients = [
-  {
-    id: "PT-12345",
-    name: "John Doe",
-    age: 50,
-    gender: "Male",
-    diagnosis: "End-Stage Renal Disease",
-    status: "Critical",
-    lastVisit: "Apr 30, 2025",
-    nextAppointment: "May 15, 2025",
-  },
-  {
-    id: "PT-23456",
-    name: "Sarah Smith",
-    age: 45,
-    gender: "Female",
-    diagnosis: "Chronic Kidney Disease Stage 4",
-    status: "Stable",
-    lastVisit: "Apr 28, 2025",
-    nextAppointment: "May 20, 2025",
-  },
-  {
-    id: "PT-34567",
-    name: "Mike Johnson",
-    age: 62,
-    gender: "Male",
-    diagnosis: "Kidney Transplant Recipient",
-    status: "Stable",
-    lastVisit: "Apr 25, 2025",
-    nextAppointment: "May 25, 2025",
-  },
-  {
-    id: "PT-45678",
-    name: "Emily Davis",
-    age: 38,
-    gender: "Female",
-    diagnosis: "Polycystic Kidney Disease",
-    status: "Stable",
-    lastVisit: "Apr 22, 2025",
-    nextAppointment: "May 22, 2025",
-  },
-  {
-    id: "PT-56789",
-    name: "Robert Wilson",
-    age: 55,
-    gender: "Male",
-    diagnosis: "Diabetic Nephropathy",
-    status: "Deteriorating",
-    lastVisit: "Apr 20, 2025",
-    nextAppointment: "May 10, 2025",
-  },
-  {
-    id: "PT-67890",
-    name: "Jennifer Brown",
-    age: 42,
-    gender: "Female",
-    diagnosis: "Lupus Nephritis",
-    status: "Improving",
-    lastVisit: "Apr 18, 2025",
-    nextAppointment: "May 18, 2025",
-  },
-  {
-    id: "PT-78901",
-    name: "David Lee",
-    age: 70,
-    gender: "Male",
-    diagnosis: "Glomerulonephritis",
-    status: "Critical",
-    lastVisit: "Apr 15, 2025",
-    nextAppointment: "May 5, 2025",
-  },
-  {
-    id: "PT-89012",
-    name: "Lisa Martinez",
-    age: 48,
-    gender: "Female",
-    diagnosis: "Chronic Kidney Disease Stage 3",
-    status: "Stable",
-    lastVisit: "Apr 12, 2025",
-    nextAppointment: "May 12, 2025",
-  },
-  {
-    id: "PT-90123",
-    name: "James Taylor",
-    age: 58,
-    gender: "Male",
-    diagnosis: "Hypertensive Nephropathy",
-    status: "Stable",
-    lastVisit: "Apr 10, 2025",
-    nextAppointment: "May 10, 2025",
-  },
-  {
-    id: "PT-01234",
-    name: "Maria Garcia",
-    age: 52,
-    gender: "Female",
-    diagnosis: "IgA Nephropathy",
-    status: "Improving",
-    lastVisit: "Apr 8, 2025",
-    nextAppointment: "May 8, 2025",
-  },
-]
+type Patient = {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  diagnosis: string;
+  status: string;
+  lastVisit: string; // ISO date string
+  nextAppointment: string; // ISO date string
+}
 
 export default function DoctorPatientsPage() {
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [sortBy, setSortBy] = useState("name")
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [patientsVersion, updatePatientsVersion] = useState(1);
+
+  // Fetch patients from the API
+  useEffect(() => {
+    async function fetchPatients() {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/patients");
+        if (!response.ok) {
+          throw new Error("Failed to fetch patients");
+        }
+        const data = await response.json();
+        setPatients(data.map((patient: any) => ({
+          ...patient,
+          name: `${patient.firstName} ${patient.lastName}`,
+          age: new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear(),
+          status: "Stable",
+          diagnosis: patient.primaryDiagnosis,
+        })));
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPatients();
+  }, [patientsVersion]);
 
   // Filter and sort patients
   const filteredPatients = patients
@@ -161,6 +100,37 @@ export default function DoctorPatientsPage() {
       default:
         return "outline"
     }
+  }
+
+  const handleDelete = async (patientId: string) => {
+    if (!confirm("Are you sure you want to delete this patient?")) return;
+
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/patient/${patientId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete patient.");
+      }
+
+      alert("Patient deleted successfully.");
+      updatePatientsVersion((prev) => prev + 1); // Trigger re-fetch of patients
+    } catch (error: any) {
+      console.error("Error deleting patient:", error.message);
+      alert("Failed to delete patient.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
   }
 
   return (
@@ -298,7 +268,11 @@ export default function DoctorPatientsPage() {
                                 Prescriptions
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem
+                              className={`text-destructive ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+                              onClick={() => handleDelete(patient.id)}
+                              disabled={loading}
+                            >
                               <Trash2 className="mr-2 h-4 w-4" />
                               Delete Patient
                             </DropdownMenuItem>

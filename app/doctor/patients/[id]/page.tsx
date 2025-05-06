@@ -1,3 +1,5 @@
+"use client";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -10,44 +12,70 @@ import { PatientLabResults } from "@/components/doctor/patient-lab-results"
 import { PatientPrescriptions } from "@/components/doctor/patient-prescriptions"
 import { PatientAppointments } from "@/components/doctor/patient-appointments"
 import { PatientVitalSigns } from "@/components/doctor/patient-vital-signs"
+import { useEffect, useState } from "react"
+
+interface Contact {
+  phone: string
+  email: string
+  address: string
+}
+
+interface EmergencyContact {
+  name: string
+  relation: string
+  phone: string
+}
+
+interface Insurance {
+  provider: string
+  policyNumber: string
+  groupNumber: string
+  expirationDate: string
+}
+
+interface Allergy {
+  allergen: string
+  reaction: string
+  severity: string
+}
+
+interface Patient {
+  id: string
+  name: string
+  age: number
+  gender: string
+  bloodType: string
+  diagnosis: string
+  diagnosisDate: string
+  status: string
+  transplantStatus: string
+  dialysisStart: string
+  contact: Contact
+  emergencyContact: EmergencyContact
+  insurance: Insurance
+  allergies: Allergy[]
+}
 
 export default function PatientDetailsPage({ params }: { params: { id: string } }) {
-  // In a real app, you would fetch patient data based on the ID
   const patientId = params.id
+  const [patient, setPatient] = useState<Patient | null>(null)
 
-  // Sample patient data
-  const patient = {
-    id: patientId,
-    name: "John Doe",
-    age: 50,
-    gender: "Male",
-    bloodType: "O+",
-    diagnosis: "End-Stage Renal Disease (ESRD)",
-    diagnosisDate: "January 5, 2023",
-    status: "Critical",
-    transplantStatus: "Waiting List",
-    dialysisStart: "March 10, 2023",
-    contact: {
-      phone: "(555) 123-4567",
-      email: "john.doe@example.com",
-      address: "123 Main Street, Anytown, CA 12345",
-    },
-    emergencyContact: {
-      name: "Sarah Doe",
-      relation: "Spouse",
-      phone: "(555) 789-0123",
-    },
-    insurance: {
-      provider: "HealthPlus Insurance",
-      policyNumber: "HP987654321",
-      groupNumber: "GRP-567890",
-      expirationDate: "December 31, 2025",
-    },
-    allergies: [
-      { allergen: "Penicillin", reaction: "Rash, Difficulty Breathing", severity: "Severe" },
-      { allergen: "Sulfa Drugs", reaction: "Skin Rash", severity: "Moderate" },
-      { allergen: "Shellfish", reaction: "Hives", severity: "Mild" },
-    ],
+  useEffect(() => {
+    async function fetchPatient() {
+      const response = await fetch(`/api/patient/${patientId}`)
+      if (!response.ok) {
+        console.error("Failed to fetch patient data")
+        return
+      }
+      const data = await response.json()
+      setPatient(data)
+    }
+
+    fetchPatient()
+  }, [patientId])
+
+  if (!patient) {
+    return <p>Loading...</p>
   }
 
   return (

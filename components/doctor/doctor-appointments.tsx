@@ -1,53 +1,46 @@
+"use client"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Clock, Calendar, MapPin } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useState } from "react"
+
+interface Appointment {
+  id: string
+  patientName: string
+  patientId: string
+  type: string
+  date: Date
+  time: string
+  duration: string
+  location: string
+  status: string
+}
 
 export function DoctorAppointments() {
-  // Sample appointment data
-  const appointments = [
-    {
-      id: 1,
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      type: "Nephrology Consultation",
-      time: "10:30 AM",
-      duration: "30 min",
-      location: "Exam Room 3",
-      status: "Checked In",
-    },
-    {
-      id: 2,
-      patientId: "PT-23456",
-      patientName: "Sarah Smith",
-      type: "Follow-up",
-      time: "11:15 AM",
-      duration: "20 min",
-      location: "Exam Room 1",
-      status: "Scheduled",
-    },
-    {
-      id: 3,
-      patientId: "PT-34567",
-      patientName: "Mike Johnson",
-      type: "Transplant Evaluation",
-      time: "1:00 PM",
-      duration: "45 min",
-      location: "Exam Room 2",
-      status: "Scheduled",
-    },
-    {
-      id: 4,
-      patientId: "PT-45678",
-      patientName: "Emily Davis",
-      type: "New Patient",
-      time: "2:30 PM",
-      duration: "60 min",
-      location: "Exam Room 3",
-      status: "Scheduled",
-    },
-  ]
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  
+  useEffect(() => {
+    async function fetchAppointments() {
+      try {
+        const response = await fetch("/api/appointments")
+        const data = await response.json()
+        setAppointments(data.map((appointment: any) => ({
+          ...appointment,
+          patientName: `${appointment.patient.firstName} ${appointment.patient.lastName}`,
+          date: new Date(appointment.date), // Convert string date to Date object
+          status: appointment.status || "scheduled", // Default status if not provided
+        })))
+      } catch (error) {
+        console.error("Error fetching appointments:", error)
+      }
+    }
+
+    fetchAppointments()
+  }, [])
+
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status.toLowerCase()) {

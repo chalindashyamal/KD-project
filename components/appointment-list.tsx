@@ -4,60 +4,48 @@ import { Button } from "@/components/ui/button"
 import { format, isSameDay } from "date-fns"
 import { Clock, MapPin, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useEffect, useState } from "react"
 
-// In a real app, this would come from an API or database
-const appointments = [
-  {
-    id: 1,
-    type: "Dialysis",
-    date: new Date(2025, 3, 30), // April 30, 2025
-    time: "10:00 AM - 1:00 PM",
-    location: "Memorial Hospital, Room 302",
-    notes: "Bring updated medication list",
-  },
-  {
-    id: 2,
-    type: "Nephrology Checkup",
-    date: new Date(2025, 4, 15), // May 15, 2025
-    time: "2:30 PM",
-    location: "Dr. Smith's Office",
-    notes: "Blood work required before visit",
-  },
-  {
-    id: 3,
-    type: "Nutritionist",
-    date: new Date(2025, 4, 20), // May 20, 2025
-    time: "11:00 AM",
-    location: "Kidney Care Center",
-    notes: "Bring food diary",
-  },
-  {
-    id: 4,
-    type: "Dialysis",
-    date: new Date(2025, 4, 2), // May 2, 2025
-    time: "10:00 AM - 1:00 PM",
-    location: "Memorial Hospital, Room 302",
-    notes: "",
-  },
-  {
-    id: 5,
-    type: "Dialysis",
-    date: new Date(2025, 4, 5), // May 5, 2025
-    time: "10:00 AM - 1:00 PM",
-    location: "Memorial Hospital, Room 302",
-    notes: "",
-  },
-]
+interface Appointment {
+  id: number
+  type: string
+  date: string
+  time: string
+  location: string
+  notes: string
+}
+
+interface AppointmentListProps {
+  selectedDate?: Date
+}
 
 interface AppointmentListProps {
   selectedDate?: Date
 }
 
 export default function AppointmentList({ selectedDate }: AppointmentListProps) {
-  // Filter appointments based on selected date
-  const filteredAppointments = selectedDate
-    ? appointments.filter((appointment) => isSameDay(appointment.date, selectedDate))
-    : appointments.sort((a, b) => a.date.getTime() - b.date.getTime())
+  const [filteredAppointments, setAppointments] = useState<Appointment[]>([])
+
+  useEffect(() => {
+    async function fetchAppointments() {
+      try {
+        const query = selectedDate
+          ? `?date=${format(selectedDate, "yyyy-MM-dd")}`
+          : ""
+        const response = await fetch(`/api/appointments${query}`)
+        if (!response.ok) {
+          console.error("Failed to fetch appointments")
+          return
+        }
+        const data = await response.json()
+        setAppointments(data)
+      } catch (error) {
+        console.error("Error fetching appointments:", error)
+      }
+    }
+
+    fetchAppointments()
+  }, [selectedDate])
 
   return (
     <Card>

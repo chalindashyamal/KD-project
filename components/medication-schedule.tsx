@@ -1,68 +1,42 @@
+"use client";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Clock, Check } from "lucide-react"
+import { useEffect, useState } from "react"
 
-// In a real app, this would come from an API or database
-const medications = [
-  {
-    id: 1,
-    name: "Tacrolimus",
-    dosage: "2mg",
-    times: ["08:00", "20:00"],
-    instructions: "Take with food",
-    status: [
-      { time: "08:00", taken: true },
-      { time: "20:00", taken: false },
-    ],
-  },
-  {
-    id: 2,
-    name: "Mycophenolate",
-    dosage: "500mg",
-    times: ["08:00", "20:00"],
-    instructions: "Take on an empty stomach",
-    status: [
-      { time: "08:00", taken: true },
-      { time: "20:00", taken: false },
-    ],
-  },
-  {
-    id: 3,
-    name: "Prednisone",
-    dosage: "5mg",
-    times: ["08:00"],
-    instructions: "Take with breakfast",
-    status: [{ time: "08:00", taken: true }],
-  },
-  {
-    id: 4,
-    name: "Calcium Acetate",
-    dosage: "667mg",
-    times: ["08:00", "12:00", "18:00"],
-    instructions: "Take with meals",
-    status: [
-      { time: "08:00", taken: true },
-      { time: "12:00", taken: true },
-      { time: "18:00", taken: false },
-    ],
-  },
-  {
-    id: 5,
-    name: "Epoetin Alfa",
-    dosage: "10,000 units",
-    times: ["Monday", "Wednesday", "Friday"],
-    instructions: "Subcutaneous injection",
-    status: [
-      { time: "Monday", taken: true },
-      { time: "Wednesday", taken: false },
-      { time: "Friday", taken: false },
-    ],
-  },
-]
+type Medication = {
+  id: number
+  name: string
+  dosage: string
+  times: string[]
+  instructions: string
+  status: { time: string; taken: boolean }[]
+}
 
 export default function MedicationSchedule() {
+  const [medications, setMedications] = useState<Medication[]>([])
+  const [medicationsVersion, updateMedicationsVersion] = useState(1)
+
+  useEffect(() => {
+    async function fetchMedications() {
+      try {
+        const response = await fetch("/api/medication-schedule")
+        if (!response.ok) {
+          throw new Error("Failed to fetch medications")
+        }
+        const data = await response.json()
+        setMedications(data)
+      } catch (error) {
+        console.error("Error fetching medications:", error)
+      }
+    }
+
+    fetchMedications()
+  }, [medicationsVersion])
+
   const formatTime = (time: string) => {
     if (time.includes(":")) {
       const [hour, minute] = time.split(":")
@@ -70,6 +44,27 @@ export default function MedicationSchedule() {
       return `${hourNum > 12 ? hourNum - 12 : hourNum}:${minute} ${hourNum >= 12 ? "PM" : "AM"}`
     }
     return time
+  }
+
+  const handleMarkAsTaken = async (medicationId: number, time: string) => {
+    try {
+      const response = await fetch("/api/medication-schedule", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ medicationId, time }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to mark medication as taken")
+      }
+
+      updateMedicationsVersion((prev) => prev + 1) // Trigger re-fetch
+    } catch (error) {
+      console.error("Error marking medication as taken:", error)
+      alert("An error occurred. Please try again.")
+    }
   }
 
   return (
@@ -115,7 +110,11 @@ export default function MedicationSchedule() {
                             Taken
                           </Badge>
                         ) : (
-                          <Button size="sm" variant="outline" className="h-7">
+                          <Button
+                            onClick={() => handleMarkAsTaken(medication.id, status.time)}
+                            size="sm"
+                            variant="outline"
+                            className="h-7">
                             Mark as Taken
                           </Button>
                         )}

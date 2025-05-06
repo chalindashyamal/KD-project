@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,72 +14,22 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
 
+type LabTest = {
+  id: number;
+  patientId: string;
+  patientName: string;
+  testType: string;
+  orderedDate: string; // ISO date string
+  dueDate: string; // ISO date string
+  priority: string
+  status: string
+};
+
 export default function DoctorLabOrdersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [showLabOrderForm, setShowLabOrderForm] = useState(false)
-  const [labOrders, setLabOrders] = useState([
-    {
-      id: 1,
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      testType: "Comprehensive Metabolic Panel",
-      orderedDate: "April 28, 2025",
-      dueDate: "May 5, 2025",
-      priority: "Routine",
-      status: "Ordered",
-    },
-    {
-      id: 2,
-      patientId: "PT-23456",
-      patientName: "Sarah Smith",
-      testType: "Complete Blood Count",
-      orderedDate: "April 27, 2025",
-      dueDate: "May 4, 2025",
-      priority: "Urgent",
-      status: "Pending",
-    },
-    {
-      id: 3,
-      patientId: "PT-34567",
-      patientName: "Mike Johnson",
-      testType: "Kidney Function Panel",
-      orderedDate: "April 25, 2025",
-      dueDate: "April 30, 2025",
-      priority: "Routine",
-      status: "Completed",
-    },
-    {
-      id: 4,
-      patientId: "PT-45678",
-      patientName: "Emily Davis",
-      testType: "Urinalysis",
-      orderedDate: "April 26, 2025",
-      dueDate: "May 3, 2025",
-      priority: "Routine",
-      status: "In Progress",
-    },
-    {
-      id: 5,
-      patientId: "PT-56789",
-      patientName: "Robert Wilson",
-      testType: "Electrolyte Panel",
-      orderedDate: "April 24, 2025",
-      dueDate: "April 29, 2025",
-      priority: "Urgent",
-      status: "Completed",
-    },
-    {
-      id: 6,
-      patientId: "PT-67890",
-      patientName: "Jennifer Brown",
-      testType: "Lipid Panel",
-      orderedDate: "April 23, 2025",
-      dueDate: "April 30, 2025",
-      priority: "Routine",
-      status: "Completed",
-    },
-  ])
+  const [labOrders, setLabOrders] = useState<LabTest[]>([])
 
   const [newLabOrder, setNewLabOrder] = useState({
     patientName: "",
@@ -89,6 +39,41 @@ export default function DoctorLabOrdersPage() {
     dueDate: new Date(),
     priority: "Routine",
   })
+
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  useEffect(() => {
+    async function fetchLabOrders() {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/lab-orders");
+        if (!response.ok) {
+          throw new Error("Failed to fetch lab orders.");
+        }
+        const data = await response.json();
+        setLabOrders(data.map((order: any) => ({
+          ...order,
+          patientName: `${order.patient.firstName} ${order.patient.lastName}`,
+        })));
+      } catch (err: any) {
+        console.error("Error fetching lab orders:", err.message);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchLabOrders();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   // Filter lab orders based on search query and status filter
   const filteredLabOrders = labOrders.filter((order) => {
@@ -135,32 +120,51 @@ export default function DoctorLabOrdersPage() {
     setNewLabOrder((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const newId = Math.max(...labOrders.map((o) => o.id)) + 1
-    setLabOrders([
-      ...labOrders,
-      {
-        id: newId,
-        patientId: newLabOrder.patientId,
-        patientName: newLabOrder.patientName,
-        testType: newLabOrder.testType,
-        orderedDate: format(newLabOrder.orderedDate, "MMMM d, yyyy"),
-        dueDate: format(newLabOrder.dueDate, "MMMM d, yyyy"),
-        priority: newLabOrder.priority,
-        status: "Ordered",
-      },
-    ])
-    setNewLabOrder({
-      patientName: "",
-      patientId: "",
-      testType: "",
-      orderedDate: new Date(),
-      dueDate: new Date(),
-      priority: "Routine",
-    })
-    setShowLabOrderForm(false)
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch("/api/lab-orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          patientId: newLabOrder.patientId,
+          patientName: newLabOrder.patientName,
+          testType: newLabOrder.testType,
+          orderedDate: newLabOrder.orderedDate.toISOString(),
+          dueDate: newLabOrder.dueDate.toISOString(),
+          priority: newLabOrder.priority,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create lab order.");
+      }
+
+      const createdLabOrder = await response.json();
+
+      createdLabOrder.patientName = `${createdLabOrder.patient.firstName} ${createdLabOrder.patient.lastName}`;
+
+      // Update the local state with the new lab order
+      setLabOrders([...labOrders, createdLabOrder]);
+
+      // Reset the form
+      setNewLabOrder({
+        patientName: "",
+        patientId: "",
+        testType: "",
+        orderedDate: new Date(),
+        dueDate: new Date(),
+        priority: "Routine",
+      });
+      setShowLabOrderForm(false);
+    } catch (error) {
+      console.error("Error creating lab order:", error);
+      alert("Failed to create lab order.");
+    }
+  };
 
   return (
     <div className="space-y-6">

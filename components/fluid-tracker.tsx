@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
@@ -9,20 +9,83 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Coffee, Droplet, GlassWaterIcon as Glass, Plus } from "lucide-react"
 
+const fluidLimit = 2000 // 2 liters in ml
+
+type WeeklyData = {
+  day: string
+  amount: number
+  current: boolean
+}
+
 export default function FluidTracker() {
-  const [fluidLimit] = useState(2000) // 2 liters in ml
-  const [currentIntake, setCurrentIntake] = useState(1200) // 1.2 liters in ml
+  const [currentIntake, setCurrentIntake] = useState(0)
   const [customAmount, setCustomAmount] = useState(0)
+  const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([])
 
   const percentage = Math.min(Math.round((currentIntake / fluidLimit) * 100), 100)
   const remaining = Math.max(fluidLimit - currentIntake, 0)
 
-  const addFluid = (amount: number) => {
-    setCurrentIntake((prev) => Math.min(prev + amount, fluidLimit))
+  // Fetch current intake from the API
+  useEffect(() => {
+    const fetchIntake = async () => {
+      try {
+        const response = await fetch("/api/daily-intake")
+        if (!response.ok) {
+          throw new Error("Network response was not ok")
+        }
+        const data = await response.json() as WeeklyData[]
+        setWeeklyData(data)
+        setCurrentIntake(data.find(day => day.current)?.amount || 0)
+      } catch (error) {
+        console.error("Failed to fetch daily intake:", error)
+      }
+    }
+
+    fetchIntake()
+  }, [])
+
+  function updateWeeklyDataToday(amount: number) {
+    const d = weeklyData.find(day => day.current)
+    if (d) d.amount = amount
   }
 
-  const resetTracker = () => {
+  // Add fluid and update the API
+  const addFluid = async (amount: number) => {
+    const newIntake = Math.min(currentIntake + amount, fluidLimit)
+    setCurrentIntake(newIntake)
+    updateWeeklyDataToday(newIntake)
+
+    try {
+      const response = await fetch("/api/daily-intake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intake: newIntake }),
+      })
+      if (!response.ok) {
+        throw new Error("Network response was not ok")
+      }
+    } catch (error) {
+      console.error("Failed to update daily intake:", error)
+    }
+  }
+
+  // Reset tracker and update the API
+  const resetTracker = async () => {
     setCurrentIntake(0)
+    updateWeeklyDataToday(0)
+
+    try {
+      const response = await fetch("/api/daily-intake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intake: 0 }),
+      })
+      if (!response.ok) {
+        throw new Error("Network response was not ok")
+      }
+    } catch (error) {
+      console.error("Failed to reset daily intake:", error)
+    }
   }
 
   return (
@@ -118,26 +181,18 @@ export default function FluidTracker() {
             </TabsList>
             <TabsContent value="week" className="space-y-4 pt-4">
               <div className="space-y-4">
-                {[
-                  { day: "Monday", amount: 1800, limit: 2000 },
-                  { day: "Tuesday", amount: 1950, limit: 2000 },
-                  { day: "Wednesday", amount: 1700, limit: 2000 },
-                  { day: "Thursday", amount: 2000, limit: 2000 },
-                  { day: "Friday", amount: 1850, limit: 2000 },
-                  { day: "Saturday", amount: 1900, limit: 2000 },
-                  { day: "Sunday", amount: 1200, limit: 2000, current: true },
-                ].map((day) => (
+                {weeklyData.map((day) => (
                   <div key={day.day} className="space-y-2">
                     <div className="flex justify-between items-center">
                       <h3 className="text-sm font-medium">
                         {day.day} {day.current && "(Today)"}
                       </h3>
-                      <span className="text-sm font-medium">{Math.round((day.amount / day.limit) * 100)}%</span>
+                      <span className="text-sm font-medium">{Math.round((day.amount / fluidLimit) * 100)}%</span>
                     </div>
-                    <Progress value={Math.round((day.amount / day.limit) * 100)} className="h-2" />
+                    <Progress value={Math.round((day.amount / fluidLimit) * 100)} className="h-2" />
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>{day.amount}ml consumed</span>
-                      <span>{day.limit - day.amount}ml remaining</span>
+                      <span>{fluidLimit - day.amount}ml remaining</span>
                     </div>
                   </div>
                 ))}

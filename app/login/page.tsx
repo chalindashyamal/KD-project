@@ -22,33 +22,12 @@ interface User {
 }
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [activeTab, setActiveTab] = useState("login")
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [userRole, setUserRole] = useState("patient")
-  const [error, setError] = useState("")
-  const [users, setUsers] = useState<{
-    patients: User[]
-    doctors: User[]
-    staff: User[]
-  }>({
-    patients: [
-      { id: "P001", username: "john.doe", password: "patient123", name: "John Doe" },
-      { id: "P002", username: "sarah.smith", password: "patient123", name: "Sarah Smith" },
-      { id: "P003", username: "mike.johnson", password: "patient123", name: "Mike Johnson" },
-    ],
-    doctors: [
-      { id: "D001", username: "dr.wilson", password: "doctor123", name: "Dr. James Wilson", specialty: "Nephrology" },
-      { id: "D002", username: "dr.patel", password: "doctor123", name: "Dr. Priya Patel", specialty: "Transplant Surgery" },
-      { id: "D003", username: "dr.chen", password: "doctor123", name: "Dr. Lisa Chen", specialty: "Internal Medicine" },
-    ],
-    staff: [
-      { id: "S001", username: "nurse.adams", password: "staff123", name: "Nurse Emily Adams", department: "Dialysis Unit" },
-      { id: "S002", username: "tech.brown", password: "staff123", name: "Tech Robert Brown", department: "Lab Services" },
-      { id: "S003", username: "admin.garcia", password: "staff123", name: "Admin Maria Garcia", department: "Administration" },
-    ],
-  })
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("login");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [userRole, setUserRole] = useState("patient");
+  const [error, setError] = useState("");
   const [registerData, setRegisterData] = useState({
     name: "",
     username: "",
@@ -57,121 +36,95 @@ export default function LoginPage() {
     role: "patient",
     specialty: "",
     department: "",
-  })
+  });
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
 
-    let userFound = false
-    let userId = ""
+    try {
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, userRole }),
+      });
 
-    if (userRole === "patient") {
-      const patient = users.patients.find((p) => p.username === username && p.password === password)
-      if (patient) {
-        userFound = true
-        userId = patient.id
+      const data = await response.json();
+      if (response.ok) {
+        setUserRole(data.role); // Set the user role after login
+
+        if (data.role === "patient") {
+          router.push("/");
+        } else if (data.role === "doctor") {
+          router.push("/doctor/dashboard");
+        } else if (data.role === "staff") {
+          router.push("/staff/dashboard");
+        }
+      } else {
+        setError(data.error);
       }
-    } else if (userRole === "doctor") {
-      const doctor = users.doctors.find((d) => d.username === username && d.password === password)
-      if (doctor) {
-        userFound = true
-        userId = doctor.id
-      }
-    } else if (userRole === "staff") {
-      const staff = users.staff.find((s) => s.username === username && s.password === password)
-      if (staff) {
-        userFound = true
-        userId = staff.id
-      }
+    } catch (err) {
+      setError("An error occurred. Please try again.");
     }
-
-    if (userFound) {
-      localStorage.setItem("userRole", userRole)
-      localStorage.setItem("userId", userId)
-
-      if (userRole === "patient") {
-        router.push("/")
-      } else if (userRole === "doctor") {
-        router.push("/doctor/dashboard")
-      } else if (userRole === "staff") {
-        router.push("/staff/dashboard")
-      }
-    } else {
-      setError("Invalid username or password")
-    }
-  }
+  };
 
   const handleRegisterInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setRegisterData((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setRegisterData((prev) => ({ ...prev, [name]: value }));
+  };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
 
-    const { name, username, password, confirmPassword, role, specialty, department } = registerData
+    const { name, username, password, confirmPassword, role, specialty, department } = registerData;
 
     // Basic validation
     if (!name || !username || !password || !confirmPassword) {
-      setError("All fields are required")
-      return
+      setError("All fields are required");
+      return;
     }
     if (password !== confirmPassword) {
-      setError("Passwords do not match")
-      return
+      setError("Passwords do not match");
+      return;
     }
     if (role === "doctor" && !specialty) {
-      setError("Specialty is required for doctors")
-      return
+      setError("Specialty is required for doctors");
+      return;
     }
     if (role === "staff" && !department) {
-      setError("Department is required for staff")
-      return
-    }
-    if ([...users.patients, ...users.doctors, ...users.staff].some((u) => u.username === username)) {
-      setError("Username already exists")
-      return
+      setError("Department is required for staff");
+      return;
     }
 
-    // Generate new user ID
-    const newId = (() => {
-      if (role === "patient") {
-        const lastId = users.patients.length ? parseInt(users.patients[users.patients.length - 1].id.slice(1)) : 0
-        return `P${(lastId + 1).toString().padStart(3, "0")}`
-      } else if (role === "doctor") {
-        const lastId = users.doctors.length ? parseInt(users.doctors[users.doctors.length - 1].id.slice(1)) : 0
-        return `D${(lastId + 1).toString().padStart(3, "0")}`
+    try {
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, username, password, role, specialty, department }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        // Reset form and switch to login tab
+        setRegisterData({
+          name: "",
+          username: "",
+          password: "",
+          confirmPassword: "",
+          role: "patient",
+          specialty: "",
+          department: "",
+        });
+        setActiveTab("login");
+        setError("Registration successful! Please log in.");
       } else {
-        const lastId = users.staff.length ? parseInt(users.staff[users.staff.length - 1].id.slice(1)) : 0
-        return `S${(lastId + 1).toString().padStart(3, "0")}`
+        setError(data.error);
       }
-    })()
-
-    // Create new user
-    const newUser: User = { id: newId, name, username, password, ...(role === "doctor" && { specialty }), ...(role === "staff" && { department }) }
-
-    // Update users state
-    setUsers((prev) => ({
-      patients: role === "patient" ? [...prev.patients, newUser] : prev.patients,
-      doctors: role === "doctor" ? [...prev.doctors, newUser] : prev.doctors,
-      staff: role === "staff" ? [...prev.staff, newUser] : prev.staff,
-    }))
-
-    // Reset form and switch to login tab
-    setRegisterData({
-      name: "",
-      username: "",
-      password: "",
-      confirmPassword: "",
-      role: "patient",
-      specialty: "",
-      department: "",
-    })
-    setActiveTab("login")
-    setError("Registration successful! Please log in.")
-  }
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
@@ -250,8 +203,8 @@ export default function LoginPage() {
                     </form>
                     <div className="mt-4 text-sm text-muted-foreground">
                       <p>Sample patient login:</p>
-                      <p>Username: john.doe</p>
-                      <p>Password: patient123</p>
+                      <p>Username: patient</p>
+                      <p>Password: 12345</p>
                     </div>
                   </TabsContent>
 
@@ -290,8 +243,8 @@ export default function LoginPage() {
                     </form>
                     <div className="mt-4 text-sm text-muted-foreground">
                       <p>Sample doctor login:</p>
-                      <p>Username: dr.wilson</p>
-                      <p>Password: doctor123</p>
+                      <p>Username: doctor</p>
+                      <p>Password: 12345</p>
                     </div>
                   </TabsContent>
 
@@ -330,8 +283,8 @@ export default function LoginPage() {
                     </form>
                     <div className="mt-4 text-sm text-muted-foreground">
                       <p>Sample staff login:</p>
-                      <p>Username: nurse.adams</p>
-                      <p>Password: staff123</p>
+                      <p>Username: staff</p>
+                      <p>Password: 12345</p>
                     </div>
                   </TabsContent>
                 </Tabs>

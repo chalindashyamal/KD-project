@@ -1,40 +1,84 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, Clock } from "lucide-react"
+import { useEffect, useState } from "react"
 
-// In a real app, this would come from an API or database
-const medications = [
-  {
-    id: 1,
-    name: "Tacrolimus",
-    dosage: "2mg",
-    time: "2:00 PM",
-    status: "upcoming",
-    instructions: "Take with food",
-  },
-  {
-    id: 2,
-    name: "Mycophenolate",
-    dosage: "500mg",
-    time: "8:00 PM",
-    status: "upcoming",
-    instructions: "Take on an empty stomach",
-  },
-  {
-    id: 3,
-    name: "Prednisone",
-    dosage: "5mg",
-    time: "8:00 AM",
-    status: "completed",
-    instructions: "Take with breakfast",
-  },
-]
+type MedicationAPI = {
+  id: number
+  name: string
+  dosage: string
+  times: string[]
+  instructions: string
+  status: { time: string; taken: boolean, takenAt: Date }[]
+}
+
+
+type Medication = {
+  id: number
+  name: string
+  dosage: string
+  time: string
+  instructions: string
+  taken: boolean
+}
 
 export default function MedicationReminders() {
+  const [medications, setMedications] = useState<Medication[]>([])
+  const [medicationsVersion, updateMedicationsVersion] = useState(1)
+
+  useEffect(() => {
+    async function fetchMedications() {
+      try {
+        const response = await fetch("/api/medication-schedule")
+        if (!response.ok) {
+          throw new Error("Failed to fetch medications")
+        }
+        const data = await response.json() as MedicationAPI[]
+        setMedications(data.flatMap((medication) => {
+          return medication.times.map((time) => ({
+            id: medication.id,
+            name: medication.name,
+            dosage: medication.dosage,
+            time,
+            instructions: medication.instructions,
+            taken: medication.status.find((status) => status.time === time)?.taken || false,
+          }))
+        }))
+      } catch (error) {
+        console.error("Error fetching medications:", error)
+      }
+    }
+
+    fetchMedications()
+  }, [medicationsVersion])
+
+  const handleMarkAsTaken = async (medicationId: number, time: string) => {
+    try {
+      const response = await fetch("/api/medication-schedule", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ medicationId, time }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to mark medication as taken")
+      }
+
+      updateMedicationsVersion((prev) => prev + 1) // Trigger re-fetch
+    } catch (error) {
+      console.error("Error marking medication as taken:", error)
+      alert("An error occurred. Please try again.")
+    }
+  }
+
   return (
     <div className="space-y-4">
       {medications.map((medication) => (
-        <div key={medication.id} className="flex justify-between items-center border-b pb-4 last:border-0">
+        <div key={medication.id + medication.time} className="flex justify-between items-center border-b pb-4 last:border-0">
           <div className="space-y-1">
             <div className="flex items-center">
               <span className="font-medium">{medication.name}</span>
@@ -48,13 +92,13 @@ export default function MedicationReminders() {
             </div>
             <div className="text-xs text-muted-foreground">{medication.instructions}</div>
           </div>
-          {medication.status === "completed" ? (
+          {medication.taken ? (
             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
               <CheckCircle2 className="mr-1 h-3 w-3" />
               Taken
             </Badge>
           ) : (
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="outline" onClick={() => handleMarkAsTaken(medication.id, medication.time)}>
               Mark as Taken
             </Button>
           )}

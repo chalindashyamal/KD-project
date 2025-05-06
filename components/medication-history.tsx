@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -8,71 +8,62 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar"
 import { format, subDays } from "date-fns"
 
-// In a real app, this would come from an API or database
-const generateMedicationHistory = () => {
-  const today = new Date()
-  const history = []
-
-  for (let i = 0; i < 30; i++) {
-    const date = subDays(today, i)
-    const dateStr = format(date, "yyyy-MM-dd")
-
-    history.push({
-      date: dateStr,
-      medications: [
-        {
-          name: "Tacrolimus",
-          dosage: "2mg",
-          time: "8:00 AM",
-          taken: true,
-          takenAt: `${dateStr} 08:05:23`,
-        },
-        {
-          name: "Tacrolimus",
-          dosage: "2mg",
-          time: "8:00 PM",
-          taken: i < 28,
-          takenAt: i < 28 ? `${dateStr} 20:10:45` : null,
-        },
-        {
-          name: "Mycophenolate",
-          dosage: "500mg",
-          time: "8:00 AM",
-          taken: true,
-          takenAt: `${dateStr} 08:05:23`,
-        },
-        {
-          name: "Mycophenolate",
-          dosage: "500mg",
-          time: "8:00 PM",
-          taken: i < 29,
-          takenAt: i < 29 ? `${dateStr} 20:10:45` : null,
-        },
-        {
-          name: "Prednisone",
-          dosage: "5mg",
-          time: "8:00 AM",
-          taken: true,
-          takenAt: `${dateStr} 08:05:23`,
-        },
-      ],
-    })
-  }
-
-  return history
+type Medication = {
+  id: number
+  name: string
+  dosage: string
+  time: string
+  instructions: string
+  taken: boolean
+  takenAt?: Date
 }
 
-const medicationHistory = generateMedicationHistory()
+type MedicationAPI = {
+  id: number
+  name: string
+  dosage: string
+  times: string[]
+  instructions: string
+  status: { time: string; taken: boolean, takenAt?: Date }[]
+}
 
 export default function MedicationHistory() {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [view, setView] = useState<string>("day")
+  const [selectedHistory, setMedications] = useState<Medication[]>([])
 
   const selectedDateStr = date ? format(date, "yyyy-MM-dd") : ""
-  const selectedHistory = medicationHistory.find((h) => h.date === selectedDateStr)
+
+  useEffect(() => {
+    async function fetchMedications() {
+      try {
+        const formattedDate = format(date || new Date(), "yyyy-MM-dd")
+        const response = await fetch(`/api/medication-schedule?date=${formattedDate}`)
+        if (!response.ok) {
+          throw new Error("Failed to fetch medications")
+        }
+        const data = await response.json() as MedicationAPI[]
+        setMedications(data.flatMap((medication) => {
+          return medication.times.map((time) => ({
+            id: medication.id,
+            name: medication.name,
+            dosage: medication.dosage,
+            time,
+            instructions: medication.instructions,
+            taken: medication.status.find((status) => status.time === time)?.taken || false,
+            takenAt: medication.status.find((status) => status.time === time)?.takenAt || undefined,
+          }))
+        }))
+      } catch (error) {
+        console.error("Error fetching medications:", error)
+      }
+    }
+
+    fetchMedications()
+  }, [selectedDateStr])
 
   const adherenceRate = selectedHistory
-    ? Math.round((selectedHistory.medications.filter((m) => m.taken).length / selectedHistory.medications.length) * 100)
+    ? Math.round((selectedHistory.filter((m) => m.taken).length / selectedHistory.length) * 100)
     : 0
 
   return (
@@ -129,7 +120,7 @@ export default function MedicationHistory() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {selectedHistory.medications.map((med, index) => (
+                {selectedHistory.map((med, index) => (
                   <TableRow key={index}>
                     <TableCell className="font-medium">{med.name}</TableCell>
                     <TableCell>{med.dosage}</TableCell>

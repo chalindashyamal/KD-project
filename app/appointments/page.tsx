@@ -50,11 +50,34 @@ export default function AppointmentsPage() {
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, this would save the appointment to a database
-    console.log(values)
-    setOpen(false)
-    form.reset()
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      // Convert the date field to a Date object
+      const formattedValues = {
+        ...values,
+        date: new Date(values.date), // Ensure the date is in the correct format
+      }
+
+      const response = await fetch("/api/appointments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formattedValues),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Error saving appointment:", errorData)
+        return
+      }
+
+      console.log("Appointment saved successfully!")
+      setOpen(false)
+      form.reset()
+    } catch (error) {
+      console.error("An error occurred:", error)
+    }
   }
 
   return (
@@ -161,10 +184,10 @@ export default function AppointmentsPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="memorial">Memorial Hospital Dialysis Unit</SelectItem>
-                          <SelectItem value="kidney-center">Kidney Care Center</SelectItem>
-                          <SelectItem value="city-clinic">City Nephrology Clinic</SelectItem>
-                          <SelectItem value="telehealth">Telehealth Appointment</SelectItem>
+                          <SelectItem value="Memorial Hospital Dialysis Unit">Memorial Hospital Dialysis Unit</SelectItem>
+                          <SelectItem value="Kidney Care Center">Kidney Care Center</SelectItem>
+                          <SelectItem value="City Nephrology Clinic">City Nephrology Clinic</SelectItem>
+                          <SelectItem value="Telehealth Appointment">Telehealth Appointment</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

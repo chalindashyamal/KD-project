@@ -1,37 +1,40 @@
+'use client';
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Clock, MapPin, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useEffect, useState } from "react"
 
-// In a real app, this would come from an API or database
-const appointments = [
-  {
-    id: 1,
-    type: "Dialysis",
-    date: "Tomorrow",
-    time: "10:00 AM - 1:00 PM",
-    location: "Memorial Hospital, Room 302",
-    notes: "Bring updated medication list",
-  },
-  {
-    id: 2,
-    type: "Nephrology Checkup",
-    date: "May 15, 2025",
-    time: "2:30 PM",
-    location: "Dr. Smith's Office",
-    notes: "Blood work required before visit",
-  },
-  {
-    id: 3,
-    type: "Nutritionist",
-    date: "May 20, 2025",
-    time: "11:00 AM",
-    location: "Kidney Care Center",
-    notes: "Bring food diary",
-  },
-]
+interface Appointment {
+  id: number
+  type: string
+  date: string
+  time: string
+  location: string
+  notes: string
+}
 
 export default function UpcomingAppointments() {
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+
+  useEffect(() => {
+    async function fetchAppointments() {
+      try {
+        const response = await fetch("/api/appointments")
+        if (!response.ok) {
+          throw new Error("Failed to fetch appointments")
+        }
+        const data = await response.json()
+        setAppointments(data)
+      } catch (error) {
+        console.error("Error fetching appointments:", error)
+      }
+    }
+
+    fetchAppointments()
+  }, [])
+
   return (
     <div className="space-y-4">
       {appointments.map((appointment) => (

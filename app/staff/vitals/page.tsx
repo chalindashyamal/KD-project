@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,14 +15,16 @@ import * as z from "zod"
 import { Search, ArrowRight, ArrowUp, ArrowDown, Minus, Save, Clock, Activity } from "lucide-react"
 import Link from "next/link"
 
-// Sample patient data
-const patients = [
-  { id: "PT-12345", name: "John Doe", age: 50, gender: "Male", room: "Dialysis Room 1" },
-  { id: "PT-23456", name: "Sarah Smith", age: 45, gender: "Female", room: "Dialysis Room 2" },
-  { id: "PT-34567", name: "Mike Johnson", age: 62, gender: "Male", room: "Exam Room 3" },
-  { id: "PT-45678", name: "Emily Davis", age: 38, gender: "Female", room: "Waiting Room" },
-  { id: "PT-56789", name: "Robert Wilson", age: 55, gender: "Male", room: "Dialysis Room 3" },
-]
+type Patient = {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  diagnosis: string;
+  status: string;
+  lastVisit: string; // ISO date string
+  nextAppointment: string; // ISO date string
+}
 
 // Form schema
 const vitalsFormSchema = z.object({
@@ -41,65 +43,74 @@ const vitalsFormSchema = z.object({
 
 type VitalsFormValues = z.infer<typeof vitalsFormSchema>
 
-// Sample vitals history
-const vitalsHistory = [
-  {
-    id: 1,
-    patientId: "PT-12345",
-    patientName: "John Doe",
-    date: "Apr 30, 2025",
-    time: "10:30 AM",
-    temperature: "37.2°C",
-    bloodPressure: "135/85",
-    heartRate: "78",
-    respiratoryRate: "16",
-    oxygenSaturation: "97%",
-    weight: "72.5 kg",
-  },
-  {
-    id: 2,
-    patientId: "PT-23456",
-    patientName: "Sarah Smith",
-    date: "Apr 30, 2025",
-    time: "9:45 AM",
-    temperature: "36.8°C",
-    bloodPressure: "142/88",
-    heartRate: "82",
-    respiratoryRate: "18",
-    oxygenSaturation: "96%",
-    weight: "65.2 kg",
-  },
-  {
-    id: 3,
-    patientId: "PT-34567",
-    patientName: "Mike Johnson",
-    date: "Apr 30, 2025",
-    time: "9:15 AM",
-    temperature: "36.5°C",
-    bloodPressure: "128/76",
-    heartRate: "68",
-    respiratoryRate: "14",
-    oxygenSaturation: "98%",
-    weight: "80.1 kg",
-  },
-  {
-    id: 4,
-    patientId: "PT-45678",
-    patientName: "Emily Davis",
-    date: "Apr 30, 2025",
-    time: "8:30 AM",
-    temperature: "37.0°C",
-    bloodPressure: "118/72",
-    heartRate: "74",
-    respiratoryRate: "16",
-    oxygenSaturation: "99%",
-    weight: "58.7 kg",
-  },
-]
+type Vitals = {
+  id: string;
+  patientId: string;
+  temperature?: string | null;
+  systolic?: string | null;
+  diastolic?: string | null;
+  heartRate?: string | null;
+  respiratoryRate?: string | null;
+  oxygenSaturation?: string | null;
+  weight?: string | null;
+  notes?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export default function StaffVitalsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null)
+  const [vitalsHistory, setVitalsHistory] = useState<Vitals[]>([])
+  const [patients, setPatients] = useState<Patient[]>([]);
+
+  // Load initial vitals history when a patient is selected
+  useEffect(() => {
+    async function fetchVitalsHistory() {
+      if (!selectedPatient) return
+
+      try {
+        const response = await fetch(`/api/vitals?patientId=${selectedPatient}`)
+        if (!response.ok) {
+          throw new Error("Failed to fetch vitals history")
+        }
+        const data = await response.json()
+        setVitalsHistory(data.map((record: any) => ({
+          ...record,
+          createdAt: new Date(record.createdAt),
+          updatedAt: new Date(record.updatedAt),
+        })))
+      } catch (error) {
+        console.error("Error fetching vitals history:", error)
+      }
+    }
+
+    fetchVitalsHistory()
+  }, [selectedPatient])
+
+  // Fetch patients from the API
+  useEffect(() => {
+    async function fetchPatients() {
+      try {
+        const response = await fetch("/api/patients");
+        if (!response.ok) {
+          throw new Error("Failed to fetch patients");
+        }
+        const data = await response.json();
+        setPatients(data.map((patient: any) => ({
+          ...patient,
+          name: `${patient.firstName} ${patient.lastName}`,
+          age: new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear(),
+          status: "Stable",
+          diagnosis: patient.primaryDiagnosis,
+        })));
+      } catch (error) {
+        console.error("Error fetching patients:", error);
+      }
+    }
+
+    fetchPatients();
+  }, []);
 
   // Initialize form
   const form = useForm<VitalsFormValues>({
@@ -118,12 +129,32 @@ export default function StaffVitalsPage() {
   })
 
   // Handle form submission
-  function onSubmit(data: VitalsFormValues) {
-    // In a real app, you would save the vitals to a database
-    console.log("Vitals data:", data)
-    alert("Vitals recorded successfully!")
-    form.reset()
-    setSelectedPatient(null)
+  async function onSubmit(data: VitalsFormValues) {
+    try {
+      const response = await fetch("/api/vitals", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to save vitals")
+      }
+
+      const savedVitals = await response.json()
+
+      // Show success message
+      alert("Vitals recorded successfully!")
+
+      // Reset form and reload vitals history
+      form.reset()
+      setVitalsHistory((prev) => [...prev, savedVitals]) // Add new vitals to history
+    } catch (error) {
+      console.error("Error saving vitals:", error)
+      alert("Failed to record vitals. Please try again.")
+    }
   }
 
   // Filter patients based on search query
@@ -224,7 +255,7 @@ export default function StaffVitalsPage() {
                       >
                         <div className="font-medium">{patient.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          {patient.id} • {patient.age} yrs • {patient.gender} • {patient.room}
+                          {patient.id} • {patient.age} yrs • {patient.gender}
                         </div>
                       </div>
                     ))
@@ -241,7 +272,10 @@ export default function StaffVitalsPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Selected Patient</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={(value) => {
+                        field.onChange(value)
+                        setSelectedPatient(value)
+                      }} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a patient" />
@@ -420,27 +454,27 @@ export default function StaffVitalsPage() {
                     filteredVitalsHistory.map((record) => (
                       <TableRow key={record.id}>
                         <TableCell>
-                          <div className="font-medium">{record.patientName}</div>
+                          <div className="font-medium">{patients.find(p => record.patientId == p.id)!.name}</div>
                           <div className="text-xs text-muted-foreground">{record.patientId}</div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <Clock className="mr-1 h-3 w-3 text-muted-foreground" />
-                            <span>{record.time}</span>
+                            <span>{record.createdAt?.toTimeString()}</span>
                           </div>
-                          <div className="text-xs text-muted-foreground">{record.date}</div>
+                          <div className="text-xs text-muted-foreground">{record.createdAt?.toDateString()}</div>
                         </TableCell>
                         <TableCell>
-                          <div>{record.bloodPressure}</div>
-                          {getStatusBadge(Number.parseInt(record.bloodPressure.split("/")[0]), "systolic")}
+                          <div>{record.diastolic}</div>
+                          {getStatusBadge(Number.parseInt(record.systolic ?? ''), "systolic")}
                         </TableCell>
                         <TableCell>
                           <div>{record.temperature}</div>
-                          {getStatusBadge(Number.parseFloat(record.temperature.replace("°C", "")), "temperature")}
+                          {getStatusBadge(Number.parseFloat(record.temperature?.replace("°C", "") ?? ''), "temperature")}
                         </TableCell>
                         <TableCell>
                           <div>{record.heartRate} bpm</div>
-                          {getStatusBadge(Number.parseInt(record.heartRate), "heartRate")}
+                          {getStatusBadge(Number.parseInt(record.heartRate ?? ''), "heartRate")}
                         </TableCell>
                         <TableCell>
                           <Button variant="ghost" size="sm" asChild>

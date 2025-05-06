@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Checkbox } from "@/components/ui/checkbox"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { useFieldArray, useForm } from "react-hook-form"
 import * as z from "zod"
 import { ArrowLeft, Plus, Trash2, Save, FileText } from "lucide-react"
 import Link from "next/link"
@@ -64,7 +64,7 @@ const prescriptionFormSchema = z.object({
   dispenseAsWritten: z.boolean().default(false),
 })
 
-type PrescriptionFormValues = z.infer<typeof prescriptionFormSchema>
+type PrescriptionFormValues = z.input<typeof prescriptionFormSchema>
 
 export default function CreatePrescriptionPage() {
   const [selectedMedication, setSelectedMedication] = useState<string | null>(null)
@@ -81,7 +81,8 @@ export default function CreatePrescriptionPage() {
   })
 
   // Get medications array from form
-  const { fields, append, remove } = form.useFieldArray({
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
     name: "medications",
   })
 

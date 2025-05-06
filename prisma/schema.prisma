@@ -1,0 +1,197 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  username   String   @unique
+  password   String
+  role       String
+  name       String?
+  specialty  String?
+  department String?
+  patientId  String?  @unique // Foreign key to the Patient model
+  Patient    Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Patient {
+  id                       String               @id
+  firstName                String
+  lastName                 String
+  dateOfBirth              DateTime
+  gender                   String
+  bloodType                String? // Optional
+  address                  String
+  phone                    String
+  email                    String? // Optional
+  emergencyContactName     String
+  emergencyContactRelation String
+  emergencyContactPhone    String
+  insuranceProvider        String
+  insurancePolicyNumber    String
+  insuranceGroupNumber     String? // Optional
+  primaryDiagnosis         String
+  diagnosisDate            DateTime
+  allergies                Allergy[]
+  notes                    String? // Optional
+  Prescription             Prescription[]
+  LabTest                  LabTest[]
+  PatientRecord            MedicalRecord[]
+  Vitals                   Vitals[]
+  User                     User?
+  Medication               Medication[]
+  MedicationSchedule       MedicationSchedule[]
+  DailyIntake              DailyIntake[]
+  Appointment              Appointment[]
+  DialysisSessions         DialysisSessions[]
+  Task                     Tasks[]
+}
+
+model Appointment {
+  id        String   @id @default(cuid()) // Unique identifier
+  type      String // Appointment type (e.g., dialysis, nephrology, etc.)
+  date      DateTime // Date of the appointment
+  time      String // Time of the appointment (e.g., "08:00")
+  location  String // Location of the appointment
+  notes     String? // Optional notes for the appointment
+  patientId String // Foreign key to the User model
+  patient   Patient  @relation(fields: [patientId], references: [id]) // Relation to User
+  createdAt DateTime @default(now()) // Timestamp for when the appointment was created
+  updatedAt DateTime @updatedAt // Timestamp for when the appointment was last updated
+}
+
+model Allergy {
+  id        String  @id @default(uuid())
+  allergen  String
+  reaction  String
+  severity  String
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Prescription {
+  id             Int      @id @default(autoincrement())
+  patientId      String
+  patient        Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  medication     String
+  dosage         String
+  frequency      String
+  prescribedDate DateTime
+  expiryDate     DateTime
+  refills        Int
+  status         String
+}
+
+model LabTest {
+  id          Int      @id @default(autoincrement())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  testType    String
+  orderedDate DateTime
+  dueDate     DateTime
+  priority    String
+  status      String
+}
+
+model MedicalRecord {
+  id          Int      @id @default(autoincrement())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  recordType  String
+  date        DateTime
+  provider    String
+  description String
+}
+
+model Medication {
+  id                 Int                  @id @default(autoincrement())
+  patientId          String
+  patient            Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  name               String
+  dosage             String
+  frequency          String
+  times              String // Array of times
+  instructions       String? // Optional field
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  MedicationSchedule MedicationSchedule[]
+}
+
+model MedicationSchedule {
+  id             Int        @id @default(autoincrement())
+  medicationId   Int
+  medication     Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date           DateTime
+  time           String
+  taken          Boolean
+  takenAt        DateTime?
+  AdministeredBy String? // Optional field for the name of the person who administered the medication
+
+  @@unique([patientId, medicationId, date, time]) // Unique constraint on patient, medication, date, and time
+}
+
+model DailyIntake {
+  id        Int      @id @default(autoincrement())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date      DateTime @unique
+  intake    Int      @default(0) // Total fluid intake in milliliters
+}
+
+model Vitals {
+  id               String   @id @default(cuid()) // Unique identifier
+  patientId        String // Foreign key to the Patient model
+  patient          Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  temperature      String? // Optional
+  systolic         String? // Optional
+  diastolic        String? // Optional
+  heartRate        String? // Optional
+  respiratoryRate  String? // Optional
+  oxygenSaturation String? // Optional
+  weight           String? // Optional
+  notes            String? // Optional
+  createdAt        DateTime @default(now()) // Timestamp
+  updatedAt        DateTime @updatedAt // Auto-updated timestamp
+}
+
+model DialysisSessions {
+  id             String   @id @default(uuid()) // Assuming `newId` is a UUID
+  patientId      String
+  patient        Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  room           String
+  machine        String
+  scheduledStart DateTime
+  scheduledEnd   DateTime
+  status         String
+  startedAt      String
+  duration       Int
+  assignedTo     String
+}
+
+model Tasks {
+  id            Int       @id @default(autoincrement())
+  title         String
+  patientId     String
+  patient       Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  dueDate       DateTime
+  dueTime       String
+  priority      String
+  assignedTo    String
+  status        String
+  completed     Boolean
+  notes         String?
+  completedBy   String?
+  completedDate DateTime?
+  completedTime String?
+}

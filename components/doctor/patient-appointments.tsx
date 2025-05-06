@@ -3,42 +3,38 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin, Plus } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useState } from "react"
+
+interface Appointment {
+  id: number
+  type: string
+  date: string
+  time: string
+  location: string
+  notes: string
+  status: string
+}
 
 interface PatientAppointmentsProps {
   patientId: string
 }
 
 export function PatientAppointments({ patientId }: PatientAppointmentsProps) {
-  // In a real app, this would come from an API or database based on the patientId
-  const appointments = [
-    {
-      id: 1,
-      type: "Dialysis",
-      date: "April 30, 2025",
-      time: "10:00 AM - 1:00 PM",
-      location: "Memorial Hospital, Room 302",
-      notes: "Bring updated medication list",
-      status: "Completed",
-    },
-    {
-      id: 2,
-      type: "Nephrology Checkup",
-      date: "May 15, 2025",
-      time: "2:30 PM",
-      location: "Dr. Smith's Office",
-      notes: "Blood work required before visit",
-      status: "Scheduled",
-    },
-    {
-      id: 3,
-      type: "Nutritionist",
-      date: "May 20, 2025",
-      time: "11:00 AM",
-      location: "Kidney Care Center",
-      notes: "Bring food diary",
-      status: "Scheduled",
-    },
-  ]
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+
+  useEffect(() => {
+    async function fetchAppointments() {
+      try {
+        const response = await fetch(`/api/appointments?patientId=${patientId}`)
+        const data = await response.json()
+        setAppointments(data)
+      } catch (error) {
+        console.error("Error fetching appointments:", error)
+      }
+    }
+
+    fetchAppointments()
+  }, [patientId])
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status.toLowerCase()) {

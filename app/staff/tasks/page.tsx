@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,130 +16,56 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+interface Task {
+  id: number;
+  title: string;
+  patientId: string;
+  patientName: string;
+  dueDate: Date; // ISO string or Date object
+  dueTime: string;
+  priority: string;
+  assignedTo: string;
+  status: string;
+  completed: boolean;
+  notes?: string;
+  completedBy?: string;
+  completedDate?: Date; // ISO string or Date object
+  completedTime?: string;
+}
+
 export default function StaffTasksPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("pending")
   const [showCreateTaskForm, setShowCreateTaskForm] = useState(false)
-  const [tasks, setTasks] = useState([
-    {
-      id: 1,
-      title: "Record vitals for John Doe",
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      dueDate: "Apr 30, 2025",
-      dueTime: "11:00 AM",
-      priority: "High",
-      assignedTo: "Nurse Emily Adams",
-      status: "Pending",
-      completed: false,
-    },
-    {
-      id: 2,
-      title: "Administer medication to Sarah Smith",
-      patientId: "PT-23456",
-      patientName: "Sarah Smith",
-      dueDate: "Apr 30, 2025",
-      dueTime: "11:30 AM",
-      priority: "Medium",
-      assignedTo: "Nurse Emily Adams",
-      status: "Pending",
-      completed: false,
-    },
-    {
-      id: 3,
-      title: "Prepare dialysis machine for Robert Wilson",
-      patientId: "PT-56789",
-      patientName: "Robert Wilson",
-      dueDate: "Apr 30, 2025",
-      dueTime: "12:00 PM",
-      priority: "High",
-      assignedTo: "Nurse Emily Adams",
-      status: "Pending",
-      completed: false,
-    },
-    {
-      id: 4,
-      title: "Check fluid balance for Mike Johnson",
-      patientId: "PT-34567",
-      patientName: "Mike Johnson",
-      dueDate: "Apr 30, 2025",
-      dueTime: "1:30 PM",
-      priority: "Medium",
-      assignedTo: "Nurse Emily Adams",
-      status: "Pending",
-      completed: false,
-    },
-    {
-      id: 5,
-      title: "Collect blood sample from Emily Davis",
-      patientId: "PT-45678",
-      patientName: "Emily Davis",
-      dueDate: "Apr 30, 2025",
-      dueTime: "2:00 PM",
-      priority: "High",
-      assignedTo: "Nurse Emily Adams",
-      status: "Pending",
-      completed: false,
-    },
-  ])
-  const [completedTasks] = useState([
-    {
-      id: 101,
-      title: "Record vitals for Sarah Smith",
-      patientId: "PT-23456",
-      patientName: "Sarah Smith",
-      dueDate: "Apr 29, 2025",
-      dueTime: "9:00 AM",
-      completedDate: "Apr 29, 2025",
-      completedTime: "9:05 AM",
-      priority: "Medium",
-      completedBy: "Nurse Emily Adams",
-      status: "Completed",
-      notes: "All vitals within normal range",
-    },
-    {
-      id: 102,
-      title: "Administer medication to John Doe",
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      dueDate: "Apr 29, 2025",
-      dueTime: "10:00 AM",
-      completedDate: "Apr 29, 2025",
-      completedTime: "10:05 AM",
-      priority: "High",
-      completedBy: "Nurse Emily Adams",
-      status: "Completed",
-      notes: "Patient tolerated medication well",
-    },
-    {
-      id: 103,
-      title: "Assist Robert Wilson with mobility exercises",
-      patientId: "PT-56789",
-      patientName: "Robert Wilson",
-      dueDate: "Apr 29, 2025",
-      dueTime: "11:00 AM",
-      completedDate: "Apr 29, 2025",
-      completedTime: "11:15 AM",
-      priority: "Medium",
-      completedBy: "Nurse Emily Adams",
-      status: "Completed",
-      notes: "Patient showing improvement in mobility",
-    },
-    {
-      id: 104,
-      title: "Change dressing for Mike Johnson",
-      patientId: "PT-34567",
-      patientName: "Mike Johnson",
-      dueDate: "Apr 29, 2025",
-      dueTime: "2:00 PM",
-      completedDate: "Apr 29, 2025",
-      completedTime: "2:10 PM",
-      priority: "Medium",
-      completedBy: "Nurse Emily Adams",
-      status: "Completed",
-      notes: "Wound healing well, no signs of infection",
-    },
-  ])
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState<boolean>(true);
+  const [tasksVersion, setTasksVersion] = useState<number>(1);
+
+  useEffect(() => {
+    async function loadTasks() {
+      try {
+        const response = await fetch('/api/tasks');
+        if (!response.ok) {
+          throw new Error('Failed to fetch tasks');
+        }
+        const data = await response.json();
+        setTasks(data.map((task: any) => ({
+          ...task,
+          patientName: `${task.patient.firstName} ${task.patient.lastName}`,
+          dueDate: new Date(task.dueDate), // Convert ISO string to Date object
+          completedDate: task.completedDate ? new Date(task.completedDate) : undefined, // Convert ISO string to Date object
+        })));
+      } catch (error) {
+        console.error('Error loading tasks:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadTasks();
+  }, [tasksVersion]);
+
+  const completedTasks = tasks.filter((task) => task.completed)
 
   const [newTask, setNewTask] = useState({
     title: "",
@@ -157,7 +83,7 @@ export default function StaffTasksPage() {
       task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       task.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       task.patientId.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  ).filter((task) => !task.completed)
 
   // Filter completed tasks based on search query
   const filteredCompletedTasks = completedTasks.filter(
@@ -185,34 +111,77 @@ export default function StaffTasksPage() {
     setNewTask((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const newId = Math.max(...tasks.map((t) => t.id)) + 1
-    setTasks([
-      ...tasks,
-      {
-        id: newId,
-        title: newTask.title,
-        patientId: newTask.patientId,
-        patientName: newTask.patientName,
-        dueDate: format(newTask.dueDate, "MMM d, yyyy"),
-        dueTime: newTask.dueTime,
-        priority: newTask.priority,
-        assignedTo: newTask.assignedTo,
-        status: "Pending",
-        completed: false,
-      },
-    ])
-    setNewTask({
-      title: "",
-      patientName: "",
-      patientId: "",
-      dueDate: new Date(),
-      dueTime: "",
-      priority: "",
-      assignedTo: "",
-    })
-    setShowCreateTaskForm(false)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newTask.title,
+          patientId: newTask.patientId,
+          patientName: newTask.patientName,
+          dueDate: newTask.dueDate.toISOString(), // Convert to ISO string
+          dueTime: newTask.dueTime,
+          priority: newTask.priority,
+          assignedTo: newTask.assignedTo,
+          status: 'Pending',
+          completed: false,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create a new task');
+      }
+
+      const createdTask = await response.json();
+
+      // Update the local state with the newly created task
+      setTasks((prevTasks) => [...prevTasks, createdTask]);
+
+      // Reset the form
+      setNewTask({
+        title: '',
+        patientName: '',
+        patientId: '',
+        dueDate: new Date(),
+        dueTime: '',
+        priority: '',
+        assignedTo: '',
+      });
+      setShowCreateTaskForm(false);
+    } catch (error) {
+      console.error('Error creating task:', error);
+    }
+  };
+
+  const handleComplete = async (taskId: number) => {
+    try {
+      const response = await fetch(`/api/tasks`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ taskId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to mark task as complete');
+      }
+
+      const updatedTask = await response.json();
+
+      setTasksVersion(prev => prev + 1); // Increment version to trigger re-fetch
+    } catch (error) {
+      console.error('Error completing task:', error);
+    }
+  };
+
+  if (loading) {
+    return <div>Loading tasks...</div>;
   }
 
   return (
@@ -418,7 +387,7 @@ export default function StaffTasksPage() {
                               <Clock className="mr-1 h-3 w-3 text-muted-foreground" />
                               <span>{task.dueTime}</span>
                             </div>
-                            <div className="text-xs text-muted-foreground">{task.dueDate}</div>
+                            <div className="text-xs text-muted-foreground">{task.dueDate.toLocaleString()}</div>
                           </TableCell>
                           <TableCell>
                             <Badge variant={getPriorityBadgeVariant(task.priority)}>{task.priority}</Badge>
@@ -428,7 +397,7 @@ export default function StaffTasksPage() {
                               <Button variant="outline" size="sm">
                                 Details
                               </Button>
-                              <Button size="sm">
+                              <Button size="sm" onClick={() => handleComplete(task.id)}>
                                 Complete
                               </Button>
                             </div>
@@ -481,7 +450,7 @@ export default function StaffTasksPage() {
                           <TableCell>
                             <div className="flex items-center">
                               <Calendar className="mr-1 h-3 w-3 text-muted-foreground" />
-                              <span>{task.completedDate}</span>
+                              <span>{task.completedDate?.toLocaleString() || ''}</span>
                             </div>
                             <div className="text-xs text-muted-foreground">{task.completedTime}</div>
                           </TableCell>
