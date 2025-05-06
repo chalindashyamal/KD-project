@@ -291,20 +291,7 @@ export default function DoctorAppointmentsPage() {
           </CardHeader>
           <CardContent>
             <Calendar mode="single" selected={date} onSelect={setDate} className="border rounded-md" />
-            <div className="mt-4 grid gap-2">
-              <Button variant="outline" className="w-full justify-start text-left font-normal">
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                Today's Appointments
-              </Button>
-              <Button variant="outline" className="w-full justify-start text-left font-normal">
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                This Week
-              </Button>
-              <Button variant="outline" className="w-full justify-start text-left font-normal">
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                This Month
-              </Button>
-            </div>
+            
           </CardContent>
         </Card>
 
