@@ -30,14 +30,15 @@ const routes = [
     href: "/diet",
   },
   {
-    label: "Health Metrics",
-    icon: BarChart3,
-    href: "/metrics",
-  },
-  {
     label: "Chatbot",
     icon: MessageSquare,
     href: "/chatbot",
+  },
+  {
+    label: "Messages",
+    icon: MessageSquare,
+    href: "/messages",
+    badge: 3,
   },
   {
     label: "Donor Program",

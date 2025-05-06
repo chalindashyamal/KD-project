@@ -5,9 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Send, Bot, Info, Pill, Calendar, FileText, Droplets, AlertCircle } from "lucide-react"
+import { Send, Bot, } from "lucide-react"
 
 // Sample conversation history
 const initialMessages = [
@@ -30,33 +28,7 @@ const suggestedQuestions = [
   "How can I reduce sodium in my diet?",
 ]
 
-// Sample educational resources
-const educationalResources = [
-  {
-    title: "Understanding Kidney Disease",
-    description: "A comprehensive guide to kidney disease, its causes, and treatment options.",
-    type: "Article",
-    url: "#",
-  },
-  {
-    title: "Dialysis and Your Body",
-    description: "Learn how dialysis works and what to expect during treatment.",
-    type: "Video",
-    url: "#",
-  },
-  {
-    title: "Kidney-Friendly Recipes",
-    description: "Collection of recipes suitable for patients with kidney disease.",
-    type: "Guide",
-    url: "#",
-  },
-  {
-    title: "Managing Medications",
-    description: "Tips for managing your medication schedule and understanding side effects.",
-    type: "Article",
-    url: "#",
-  },
-]
+
 
 export default function ChatbotPage() {
   const [messages, setMessages] = useState(initialMessages)
@@ -158,10 +130,7 @@ export default function ChatbotPage() {
           <h1 className="text-3xl font-bold tracking-tight">KidneyCare Assistant</h1>
           <p className="text-muted-foreground">Your AI-powered guide for kidney health information</p>
         </div>
-        <Button variant="outline" className="gap-2">
-          <AlertCircle className="h-4 w-4" />
-          Contact Real Support
-        </Button>
+      
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -258,139 +227,11 @@ export default function ChatbotPage() {
             </CardContent>
           </Card>
 
-          <Card className="overflow-hidden border-none shadow-md">
-            <CardHeader className="bg-primary text-primary-foreground px-6 py-4">
-              <CardTitle>Quick Links</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4">
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" className="flex flex-col h-auto py-3">
-                  <Pill className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Medications</span>
-                </Button>
-                <Button variant="outline" className="flex flex-col h-auto py-3">
-                  <Calendar className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Appointments</span>
-                </Button>
-                <Button variant="outline" className="flex flex-col h-auto py-3">
-                  <FileText className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Diet Plan</span>
-                </Button>
-                <Button variant="outline" className="flex flex-col h-auto py-3">
-                  <Droplets className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Fluid Tracker</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          
         </div>
       </div>
 
-      <Card className="overflow-hidden border-none shadow-md">
-        <CardHeader className="bg-primary text-primary-foreground px-6 py-4">
-          <CardTitle>Educational Resources</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <Tabs defaultValue="all">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="all">All Resources</TabsTrigger>
-              <TabsTrigger value="articles">Articles</TabsTrigger>
-              <TabsTrigger value="videos">Videos</TabsTrigger>
-              <TabsTrigger value="guides">Guides</TabsTrigger>
-            </TabsList>
-            <TabsContent value="all" className="mt-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                {educationalResources.map((resource, index) => (
-                  <Card key={index} className="overflow-hidden">
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-base">{resource.title}</CardTitle>
-                        <Badge variant="outline">{resource.type}</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-4">{resource.description}</p>
-                      <Button variant="outline" size="sm" className="w-full">
-                        <Info className="mr-2 h-4 w-4" />
-                        View Resource
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-            <TabsContent value="articles" className="mt-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                {educationalResources
-                  .filter((r) => r.type === "Article")
-                  .map((resource, index) => (
-                    <Card key={index} className="overflow-hidden">
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-base">{resource.title}</CardTitle>
-                          <Badge variant="outline">{resource.type}</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground mb-4">{resource.description}</p>
-                        <Button variant="outline" size="sm" className="w-full">
-                          <Info className="mr-2 h-4 w-4" />
-                          View Article
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-              </div>
-            </TabsContent>
-            <TabsContent value="videos" className="mt-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                {educationalResources
-                  .filter((r) => r.type === "Video")
-                  .map((resource, index) => (
-                    <Card key={index} className="overflow-hidden">
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-base">{resource.title}</CardTitle>
-                          <Badge variant="outline">{resource.type}</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground mb-4">{resource.description}</p>
-                        <Button variant="outline" size="sm" className="w-full">
-                          <Info className="mr-2 h-4 w-4" />
-                          Watch Video
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-              </div>
-            </TabsContent>
-            <TabsContent value="guides" className="mt-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                {educationalResources
-                  .filter((r) => r.type === "Guide")
-                  .map((resource, index) => (
-                    <Card key={index} className="overflow-hidden">
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-base">{resource.title}</CardTitle>
-                          <Badge variant="outline">{resource.type}</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground mb-4">{resource.description}</p>
-                        <Button variant="outline" size="sm" className="w-full">
-                          <Info className="mr-2 h-4 w-4" />
-                          View Guide
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+      
     </div>
   )
 }

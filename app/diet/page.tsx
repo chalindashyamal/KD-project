@@ -21,50 +21,8 @@ export default function DietPage() {
         </Button>
       </div>
 
-      <Card className="overflow-hidden border-none shadow-md">
-        <div className="bg-primary text-primary-foreground px-6 py-4">
-          <h2 className="text-xl font-semibold">Nutrition Summary</h2>
-        </div>
-        <div className="p-6">
-          <div className="grid gap-6 md:grid-cols-4">
-            <div className="space-y-2 text-center">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                <Droplets className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="font-medium">Fluid Intake</h3>
-              <div className="text-2xl font-bold">1.2L / 2L</div>
-              <p className="text-xs text-muted-foreground">60% of daily target</p>
-            </div>
-
-            <div className="space-y-2 text-center">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                <PieChart className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="font-medium">Potassium</h3>
-              <div className="text-2xl font-bold">1,800mg</div>
-              <p className="text-xs text-muted-foreground">72% of daily limit</p>
-            </div>
-
-            <div className="space-y-2 text-center">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                <FileText className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="font-medium">Phosphorus</h3>
-              <div className="text-2xl font-bold">800mg</div>
-              <p className="text-xs text-muted-foreground">80% of daily limit</p>
-            </div>
-
-            <div className="space-y-2 text-center">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                <Apple className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="font-medium">Sodium</h3>
-              <div className="text-2xl font-bold">1,500mg</div>
-              <p className="text-xs text-muted-foreground">75% of daily limit</p>
-            </div>
-          </div>
-        </div>
-      </Card>
+      
+      
 
       <Tabs defaultValue="plan">
         <TabsList className="grid w-full grid-cols-4">
