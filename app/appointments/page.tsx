@@ -22,6 +22,7 @@ import * as z from "zod"
 import { format } from "date-fns"
 import { CalendarPlus, Clock } from "lucide-react"
 import AppointmentList from "@/components/appointment-list"
+import request from "@/lib/request"
 
 const formSchema = z.object({
   type: z.string({
@@ -58,7 +59,7 @@ export default function AppointmentsPage() {
         date: new Date(values.date), // Ensure the date is in the correct format
       }
 
-      const response = await fetch("/api/appointments", {
+      const response = await request("/api/appointments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react";
+import request from "@/lib/request"
 
 interface Patient {
   id: string;
@@ -68,7 +69,7 @@ export default function PatientInfo() {
   useEffect(() => {
     const fetchPatientData = async () => {
       try {
-        const response = await fetch("/api/patient");
+        const response = await request("/api/patient");
         if (!response.ok) {
           console.error("Failed to fetch patient data");
           return;

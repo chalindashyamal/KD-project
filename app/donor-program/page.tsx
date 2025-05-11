@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Heart, Users, Calendar, FileText, Clock, CheckCircle, HelpCircle, ArrowRight, MessageSquare } from "lucide-react"
+import request from "@/lib/request"
 
 interface Donor {
   id: number
@@ -28,28 +29,28 @@ interface Donor {
 
 export default function DonorProgramPage() {
   const [showDonorForm, setShowDonorForm] = useState(false)
-  const [donors, setDonors] = useState<Donor[]>([
-    {
-      id: 1,
-      name: "Sarah Doe",
-      bloodType: "A+",
-      contact: "sarah.doe@example.com",
-      relationship: "Sister",
-      healthStatus: "Good",
-      status: "Testing Phase",
-      messages: [],
-    },
-    {
-      id: 2,
-      name: "Michael Smith",
-      bloodType: "O+",
-      contact: "michael.smith@example.com",
-      relationship: "Friend",
-      healthStatus: "Good",
-      status: "Initial Screening",
-      messages: [],
-    },
-  ])
+  const [donors, setDonors] = useState<Donor[]>([])
+
+  useEffect(() => {
+    async function fetchDonors() {
+      try {
+        const response = await request('/api/donors');
+        if (!response.ok) {
+          throw new Error('Failed to fetch donors');
+        }
+        const data: Donor[] = await response.json();
+        setDonors(data.map((donor) => ({
+          ...donor,
+          messages: donor.messages || [],
+        })));
+      } catch (error) {
+        console.error('Error fetching donors:', error);
+      }
+    }
+
+    fetchDonors();
+  }, []);
+
   const [newDonor, setNewDonor] = useState({
     name: "",
     bloodType: "",
@@ -65,31 +66,48 @@ export default function DonorProgramPage() {
     setNewDonor((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleDonorSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const newId = Math.max(...donors.map((d) => d.id), 0) + 1
-    setDonors([
-      ...donors,
-      {
-        id: newId,
-        name: newDonor.name,
-        bloodType: newDonor.bloodType,
-        contact: newDonor.contact,
-        relationship: newDonor.relationship,
-        healthStatus: newDonor.healthStatus,
-        status: "Initial Screening",
-        messages: [],
-      },
-    ])
-    setNewDonor({
-      name: "",
-      bloodType: "",
-      contact: "",
-      relationship: "",
-      healthStatus: "",
-    })
-    setShowDonorForm(false)
-  }
+  const handleDonorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const response = await request('/api/donors', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newDonor.name,
+          bloodType: newDonor.bloodType,
+          contact: newDonor.contact,
+          relationship: newDonor.relationship,
+          healthStatus: newDonor.healthStatus,
+          status: "Initial Screening",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create a new donor');
+      }
+
+      const createdDonor = await response.json();
+
+      createdDonor.messages = createdDonor.messages || [];
+      // Update the local state with the newly created donor
+      setDonors((prevDonors) => [...prevDonors, createdDonor]);
+
+      // Reset the form
+      setNewDonor({
+        name: '',
+        bloodType: '',
+        contact: '',
+        relationship: '',
+        healthStatus: '',
+      });
+      setShowDonorForm(false);
+    } catch (error) {
+      console.error('Error creating donor:', error);
+    }
+  };
 
   const handleMessageSubmit = (donorId: number) => {
     if (!newMessage.trim()) return
@@ -221,9 +239,9 @@ export default function DonorProgramPage() {
         </Dialog>
       </div>
 
-     
 
-      
+
+
 
       <Tabs defaultValue="about">
         <TabsList className="grid w-full grid-cols-4">
@@ -467,16 +485,14 @@ export default function DonorProgramPage() {
                                 donor.messages.map((msg, index) => (
                                   <div
                                     key={index}
-                                    className={`flex ${
-                                      msg.sender === "Patient" ? "justify-end" : "justify-start"
-                                    }`}
+                                    className={`flex ${msg.sender === "Patient" ? "justify-end" : "justify-start"
+                                      }`}
                                   >
                                     <div
-                                      className={`p-2 rounded-lg text-sm ${
-                                        msg.sender === "Patient"
-                                          ? "bg-primary text-primary-foreground"
-                                          : "bg-muted"
-                                      }`}
+                                      className={`p-2 rounded-lg text-sm ${msg.sender === "Patient"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted"
+                                        }`}
                                     >
                                       <p>{msg.content}</p>
                                       <p className="text-xs opacity-70">{msg.timestamp}</p>
@@ -510,9 +526,9 @@ export default function DonorProgramPage() {
           </Card>
         </TabsContent>
 
-       
 
-        
+
+
       </Tabs>
     </div>
   )

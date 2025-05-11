@@ -29,7 +29,14 @@ export default withAuth(async function handler(req, res) {
     } else if (req.method === "GET") {
         try {
             // Fetch all medications from the database
-            const medications = await prisma.medication.findMany();
+            const medications = await prisma.medication.findMany({
+                include: {
+                    patient: true,
+                },
+                where: {
+                    patientId: req.patient!.id,
+                },
+            });
 
             res.status(200).json(medications.map(medication => ({
                 ...medication,

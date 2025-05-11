@@ -1,3 +1,4 @@
+"use client"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -7,13 +8,29 @@ import MedicationReminders from "@/components/medication-reminders"
 import EmergencyButton from "@/components/emergency-button"
 import HealthMetrics from "@/components/health-metrics"
 import FluidTracker from "@/components/fluid-tracker"
+import { useEffect, useState } from "react"
+import request from "@/lib/request"
 
 export default function Dashboard() {
+  const [name, setName] = useState("")
+
+  useEffect(() => {
+    const fetchName = async () => {
+      const response = await request("/api/patient")
+      if (!response.ok) {
+        throw new Error("Network response was not ok")
+      }
+      const data = await response.json()
+      setName(`${data.firstName} ${data.lastName}`)
+    }
+    fetchName()
+  }, [])
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Welcome back, John</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Welcome back, {name}</h1>
           <p className="text-muted-foreground">Here's an overview of your health status</p>
         </div>
         <EmergencyButton />

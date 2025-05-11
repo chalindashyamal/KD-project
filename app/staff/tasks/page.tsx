@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import request from "@/lib/request"
 
 interface Task {
   id: number;
@@ -33,6 +34,11 @@ interface Task {
   completedTime?: string;
 }
 
+interface Staff {
+  id: string;
+  name: string;
+}
+
 export default function StaffTasksPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("pending")
@@ -40,11 +46,12 @@ export default function StaffTasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState<boolean>(true);
   const [tasksVersion, setTasksVersion] = useState<number>(1);
+  const [staff, setStaff] = useState<Staff[]>()
 
   useEffect(() => {
     async function loadTasks() {
       try {
-        const response = await fetch('/api/tasks');
+        const response = await request('/api/tasks');
         if (!response.ok) {
           throw new Error('Failed to fetch tasks');
         }
@@ -64,6 +71,23 @@ export default function StaffTasksPage() {
 
     loadTasks();
   }, [tasksVersion]);
+
+  useEffect(() => {
+    async function fetchStaff() {
+      try {
+        const response = await request("/api/staff")
+        if (!response.ok) {
+          throw new Error("Failed to fetch staff")
+        }
+        const data = await response.json()
+        setStaff(data)
+      } catch (error) {
+        console.error("Error fetching staff:", error)
+      }
+    }
+
+    fetchStaff()
+  }, [])
 
   const completedTasks = tasks.filter((task) => task.completed)
 
@@ -115,7 +139,7 @@ export default function StaffTasksPage() {
     e.preventDefault();
 
     try {
-      const response = await fetch('/api/tasks', {
+      const response = await request('/api/tasks', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -160,7 +184,7 @@ export default function StaffTasksPage() {
 
   const handleComplete = async (taskId: number) => {
     try {
-      const response = await fetch(`/api/tasks`, {
+      const response = await request(`/api/tasks`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -319,8 +343,11 @@ export default function StaffTasksPage() {
                     <SelectValue placeholder="Select staff" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Nurse Emily Adams">Nurse Emily Adams</SelectItem>
-                    <SelectItem value="Nurse David Wilson">Nurse David Wilson</SelectItem>
+                    {staff?.map((nurse) => (
+                      <SelectItem key={nurse.id} value={nurse.id}>
+                        {nurse.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

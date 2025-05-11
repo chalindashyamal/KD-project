@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import request from "@/lib/request"
 
 type MedicationAPI = {
   id: number
@@ -61,7 +62,7 @@ export default function StaffMedicationsPage() {
   useEffect(() => {
     async function fetchMedications() {
       try {
-        const response = await fetch("/api/medication-schedule")
+        const response = await request("/api/medication-schedule")
         if (!response.ok) {
           throw new Error("Failed to fetch medications")
         }
@@ -125,7 +126,7 @@ export default function StaffMedicationsPage() {
     e.preventDefault()
 
     try {
-      const response = await fetch("/api/medication-schedule", {
+      const response = await request("/api/medication-schedule", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

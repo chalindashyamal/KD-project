@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
+import request from "@/lib/request"
 
 type Patient = {
   id: string;
@@ -41,7 +42,7 @@ export default function StaffPatientsPage() {
     async function fetchPatients() {
       try {
         setLoading(true);
-        const response = await fetch("/api/patients");
+        const response = await request("/api/patients");
         if (!response.ok) {
           throw new Error("Failed to fetch patients");
         }

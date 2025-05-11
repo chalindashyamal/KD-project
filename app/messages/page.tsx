@@ -30,6 +30,7 @@ import {
 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge"
+import request from "@/lib/request"
 
 type Message = {
   id: string
@@ -39,8 +40,6 @@ type Message = {
   recipientId: string
   content: string
   timestamp: Date
-  read: boolean
-  urgent: boolean
 }
 
 type Conversation = {
@@ -50,159 +49,123 @@ type Conversation = {
   role: string
   lastMessage: string
   timestamp: Date
-  unread: number
-  avatar: string
+  messages: Message[]
 }
 
 export default function MessagesPage() {
   const { toast } = useToast()
-  const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [filterRole, setFilterRole] = useState("all")
   const [isLoading, setIsLoading] = useState(true)
-  
-  // Mock current user data
-  const currentUser = {
-    id: "doctor-1",
-    name: "Dr. Smith"
-  }
+  const [currentUser, setCurrentUser] = useState({ id: "", name: "" })
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
 
-  // Mock data - replace with actual API calls
   useEffect(() => {
-    // Simulate loading conversations
-    setTimeout(() => {
-      setConversations([
-        {
-          id: "1",
-          participant: "John Doe",
-          participantId: "patient-1",
-          role: "Patient",
-          lastMessage: "About my recent lab results...",
-          timestamp: new Date(Date.now() - 1000 * 60 * 5),
-          unread: 2,
-          avatar: "/avatars/patient-1.jpg",
-        },
-        {
-          id: "2",
-          participant: "Dr. Johnson",
-          participantId: "doctor-2",
-          role: "Doctor",
-          lastMessage: "The prescription has been updated",
-          timestamp: new Date(Date.now() - 1000 * 60 * 30),
-          unread: 0,
-          avatar: "/avatars/doctor-1.jpg",
-        },
-        {
-          id: "3",
-          participant: "Nurse Williams",
-          participantId: "nurse-1",
-          role: "Nurse",
-          lastMessage: "Your appointment has been confirmed",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-          unread: 1,
-          avatar: "/avatars/nurse-1.jpg",
-        },
-        {
-          id: "4",
-          participant: "Lab Technician",
-          participantId: "lab-1",
-          role: "Lab",
-          lastMessage: "Your test results are ready",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
-          unread: 0,
-          avatar: "/avatars/lab-1.jpg",
-        },
-      ])
-      setIsLoading(false)
-    }, 500)
+    const fetchUser = async () => {
+      const response = await request("/api/user")
+      if (!response.ok) {
+        throw new Error("Network response was not ok")
+      }
+      const data = await response.json()
+      setCurrentUser({
+        id: data.id,
+        name: data.name,
+      })
+    }
+
+    fetchUser()
+  }, [])
+
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const response = await request("/api/messages")
+        if (!response.ok) {
+          throw new Error("Failed to fetch conversations")
+        }
+        const data = await response.json()
+        setConversations(data.map((conv: any) => ({
+          ...conv,
+          timestamp: new Date(conv.timestamp),
+          messages: conv.messages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp),
+          })),
+        })))
+        setIsLoading(false)
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load conversations. Please try again later.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    fetchConversations()
   }, [])
 
   // Load messages when conversation is selected
   useEffect(() => {
     if (selectedConversation) {
-      // Simulate loading messages
-      setIsLoading(true)
-      setTimeout(() => {
-        setMessages([
-          {
-            id: "1",
-            sender: "John Doe",
-            senderId: "patient-1",
-            recipient: currentUser.name,
-            recipientId: currentUser.id,
-            content: "Hello Doctor, I have a question about my recent lab results.",
-            timestamp: new Date(Date.now() - 1000 * 60 * 10),
-            read: true,
-            urgent: false,
-          },
-          {
-            id: "2",
-            sender: currentUser.name,
-            senderId: currentUser.id,
-            recipient: "John Doe",
-            recipientId: "patient-1",
-            content: "Hello John, what would you like to know?",
-            timestamp: new Date(Date.now() - 1000 * 60 * 8),
-            read: true,
-            urgent: false,
-          },
-          {
-            id: "3",
-            sender: "John Doe",
-            senderId: "patient-1",
-            recipient: currentUser.name,
-            recipientId: currentUser.id,
-            content: "The potassium levels seem high. Should I be concerned?",
-            timestamp: new Date(Date.now() - 1000 * 60 * 5),
-            read: false,
-            urgent: true,
-          },
-        ])
-        setIsLoading(false)
-      }, 300)
+      const conversation = conversations.find(c => c.id === selectedConversation)
+      if (conversation) {
+        setMessages(conversation.messages)
+      } else {
+        setMessages([])
+      }
     }
   }, [selectedConversation, currentUser.id, currentUser.name])
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return
 
     const conversation = conversations.find(c => c.id === selectedConversation)
     if (!conversation) return
 
-    const newMsg: Message = {
-      id: Date.now().toString(),
-      sender: currentUser.name,
-      senderId: currentUser.id,
-      recipient: conversation.participant,
-      recipientId: conversation.participantId,
-      content: newMessage,
-      timestamp: new Date(),
-      read: false,
-      urgent: false,
+    try {
+      const response = await request("/api/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: conversation.participantId,
+          content: newMessage,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to send message")
+      }
+
+      const message = await response.json()
+
+      setMessages([...messages, {
+        ...message,
+        timestamp: new Date(message.timestamp),
+      }])
+      setNewMessage("")
+
+      toast({
+        title: "Message sent",
+        description: `Your message to ${conversation.participant} has been sent.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again later.",
+        variant: "destructive",
+      })
     }
-
-    setMessages([...messages, newMsg])
-    setNewMessage("")
-
-    // Update last message in conversation
-    setConversations(conversations.map(c => 
-      c.id === selectedConversation 
-        ? { ...c, lastMessage: newMessage, timestamp: new Date(), unread: 0 }
-        : c
-    ))
-
-    toast({
-      title: "Message sent",
-      description: `Your message to ${conversation.participant} has been sent.`,
-    })
   }
 
   const filteredConversations = conversations.filter(conv => {
     const matchesSearch = conv.participant.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
+      !conv.lastMessage || conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = filterRole === "all" || conv.role.toLowerCase() === filterRole.toLowerCase()
     return matchesSearch && matchesRole
   })
@@ -232,10 +195,10 @@ export default function MessagesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
-              
+
                 <SelectItem value="doctor">Doctors</SelectItem>
                 <SelectItem value="nurse">Staff</SelectItem>
-                
+
               </SelectContent>
             </Select>
           </div>
@@ -259,7 +222,7 @@ export default function MessagesPage() {
                     onClick={() => setSelectedConversation(conversation.id)}
                   >
                     <Avatar className="h-10 w-10 mr-3">
-                      <AvatarImage src={conversation.avatar} />
+                      <AvatarImage />
                       <AvatarFallback>
                         <User className="h-5 w-5" />
                       </AvatarFallback>
@@ -275,11 +238,6 @@ export default function MessagesPage() {
                         <p className="text-sm text-muted-foreground truncate">
                           {conversation.lastMessage}
                         </p>
-                        {conversation.unread > 0 && (
-                          <Badge className="h-5 w-5 flex items-center justify-center p-0">
-                            {conversation.unread}
-                          </Badge>
-                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">{conversation.role}</p>
                     </div>
@@ -298,7 +256,7 @@ export default function MessagesPage() {
             <CardHeader className="border-b">
               <div className="flex items-center">
                 <Avatar className="h-10 w-10 mr-3">
-                  <AvatarImage src={conversations.find(c => c.id === selectedConversation)?.avatar} />
+                  <AvatarImage />
                   <AvatarFallback>
                     <User className="h-5 w-5" />
                   </AvatarFallback>
@@ -329,12 +287,6 @@ export default function MessagesPage() {
                         <div
                           className={`max-w-[80%] rounded-lg px-4 py-3 ${message.senderId === currentUser.id ? "bg-primary text-primary-foreground" : "bg-accent"}`}
                         >
-                          {message.urgent && message.senderId !== currentUser.id && (
-                            <div className="flex items-center text-xs font-bold mb-1 text-red-500">
-                              <AlertCircle className="h-4 w-4 mr-1" />
-                              URGENT
-                            </div>
-                          )}
                           <p>{message.content}</p>
                           <p className={`text-xs mt-1 ${message.senderId === currentUser.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                             {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

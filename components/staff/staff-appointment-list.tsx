@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Clock, MapPin, CheckCircle, UserCog } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import request from "@/lib/request"
 
 interface Appointment {
   id: string
@@ -26,7 +27,7 @@ export function StaffAppointmentList() {
   useEffect(() => {
     async function fetchAppointments() {
       try {
-        const response = await fetch("/api/appointments")
+        const response = await request("/api/appointments")
         const data = await response.json()
         setAppointments(data.map((appointment: any) => ({
           ...appointment,

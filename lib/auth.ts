@@ -8,6 +8,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 interface NextApiRequestWithAuth extends NextApiRequest {
     user: User;
     patient?: Patient
+    doctor?: User
+    staff?: User
 }
 
 type NextApiHandlerWithAuth = (req: NextApiRequestWithAuth, res: NextApiResponse) => void;
@@ -38,6 +40,12 @@ export function withAuth(handler: NextApiHandlerWithAuth): NextApiHandlerWithAut
                     where: { id: user.patientId },
                 });
                 req.patient = patient;
+            }
+            if (user.role === "doctor") {
+                req.doctor = user;
+            }
+            if (user.role === "staff") {
+                req.staff = user;
             }
             return handler(req, res);
         } catch (error) {

@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertCircle, Heart, User, UserCog, Stethoscope } from "lucide-react"
+import request from "@/lib/request"
 
 interface User {
   id: string
@@ -43,7 +44,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetch("/api/login", {
+      const response = await request("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, userRole }),
@@ -98,7 +99,7 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch("/api/register", {
+      const response = await request("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, username, password, role, specialty, department }),

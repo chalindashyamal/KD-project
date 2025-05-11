@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
+import request from "@/lib/request"
 
 type LabTest = {
   id: number;
@@ -47,7 +48,7 @@ export default function DoctorLabOrdersPage() {
     async function fetchLabOrders() {
       try {
         setLoading(true);
-        const response = await fetch("/api/lab-orders");
+        const response = await request("/api/lab-orders");
         if (!response.ok) {
           throw new Error("Failed to fetch lab orders.");
         }
@@ -124,7 +125,7 @@ export default function DoctorLabOrdersPage() {
     e.preventDefault();
 
     try {
-      const response = await fetch("/api/lab-orders", {
+      const response = await request("/api/lab-orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

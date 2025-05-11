@@ -11,6 +11,7 @@ import { Search, ArrowRight, Clock, Calendar, Activity, Droplets } from "lucide-
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import request from "@/lib/request"
 
 interface DialysisSessions {
   id: string; // Assuming `newId` is a string (e.g., UUID)
@@ -26,16 +27,23 @@ interface DialysisSessions {
   assignedTo: string;
 }
 
+interface Staff {
+  id: string;
+  name: string;
+}
+
 export default function StaffDialysisPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("today")
   const [showScheduleForm, setShowScheduleForm] = useState(false)
   const [dialysisSessions, setDialysisSessions] = useState<DialysisSessions[]>([])
+  const [dialysisSessionsVersion, setDialysisSessionsVersion] = useState(1)
+  const [staff, setStaff] = useState<Staff[]>()
 
   useEffect(() => {
     async function fetchDialysisSessions() {
       try {
-        const response = await fetch("/api/dialysis-sessions")
+        const response = await request("/api/dialysis-sessions")
         if (!response.ok) {
           throw new Error("Failed to fetch dialysis sessions")
         }
@@ -57,8 +65,26 @@ export default function StaffDialysisPage() {
     }
 
     fetchDialysisSessions()
+  }, [dialysisSessionsVersion])
+
+  useEffect(() => {
+    async function fetchStaff() {
+      try {
+        const response = await request("/api/staff")
+        if (!response.ok) {
+          throw new Error("Failed to fetch staff")
+        }
+        const data = await response.json()
+        setStaff(data)
+      } catch (error) {
+        console.error("Error fetching staff:", error)
+      }
+    }
+
+    fetchStaff()
   }, [])
 
+  const incompleteSessions = dialysisSessions.filter((session) => session.status !== "Completed")
   const completedSessions = dialysisSessions.filter((session) => session.status === "Completed")
 
   const [newSession, setNewSession] = useState({
@@ -73,7 +99,7 @@ export default function StaffDialysisPage() {
   })
 
   // Filter dialysis sessions based on search query
-  const filteredSessions = dialysisSessions.filter(
+  const filteredIncompleteSessions = incompleteSessions.filter(
     (session) =>
       session.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       session.patientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -97,7 +123,7 @@ export default function StaffDialysisPage() {
     e.preventDefault()
 
     try {
-      const response = await fetch("/api/dialysis-sessions", {
+      const response = await request("/api/dialysis-sessions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -122,8 +148,7 @@ export default function StaffDialysisPage() {
 
       const createdSession = await response.json()
 
-      // Update local state with the newly created session
-      setDialysisSessions((prevSessions) => [...prevSessions, createdSession])
+      setDialysisSessionsVersion((prev) => prev + 1) // Increment the version to trigger re-fetch
 
       // Reset the form
       setNewSession({
@@ -139,6 +164,28 @@ export default function StaffDialysisPage() {
       setShowScheduleForm(false)
     } catch (error) {
       console.error("Error creating dialysis session:", error)
+    }
+  }
+
+  const handleSessionUpdate = async (sessionId: string, status: string) => {
+    try {
+      const response = await request(`/api/dialysis-sessions/${sessionId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to start the session")
+      }
+
+      const updatedSession = await response.json()
+
+      setDialysisSessionsVersion((prev) => prev + 1) // Increment the version to trigger re-fetch
+    } catch (error) {
+      console.error("Error starting dialysis session:", error)
     }
   }
 
@@ -280,8 +327,11 @@ export default function StaffDialysisPage() {
                     <SelectValue placeholder="Select nurse" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Nurse Emily Adams">Nurse Emily Adams</SelectItem>
-                    <SelectItem value="Nurse David Wilson">Nurse David Wilson</SelectItem>
+                    {staff?.map((nurse) => (
+                      <SelectItem key={nurse.id} value={nurse.id}>
+                        {nurse.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -322,14 +372,14 @@ export default function StaffDialysisPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredSessions.length === 0 ? (
+                    {filteredIncompleteSessions.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
                           No dialysis sessions found
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredSessions.map((session) => (
+                      filteredIncompleteSessions.map((session) => (
                         <TableRow key={session.id}>
                           <TableCell>
                             <div className="font-medium">{session.patientName}</div>
@@ -373,12 +423,12 @@ export default function StaffDialysisPage() {
                                 Details
                               </Button>
                               {session.status === "Scheduled" ? (
-                                <Button size="sm">
+                                <Button size="sm" onClick={() => handleSessionUpdate(session.id, "In Progress")}>
                                   Start
                                 </Button>
                               ) : session.status === "In Progress" ? (
-                                <Button size="sm">
-                                  Monitor
+                                <Button size="sm" onClick={() => handleSessionUpdate(session.id, "Completed")}>
+                                  End
                                 </Button>
                               ) : null}
                             </div>

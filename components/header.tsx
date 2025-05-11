@@ -33,6 +33,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useRouter } from "next/navigation"
+import request from "@/lib/request"
 
 const routes = [
   {
@@ -229,7 +230,7 @@ export default function Header() {
             <DropdownMenuItem
               className="text-destructive"
               onClick={async () => {
-                const response = await fetch("/api/logout", { method: "POST" });
+                const response = await request("/api/logout", { method: "POST" });
                 if (response.ok) {
                   router.push("/login");
                 }

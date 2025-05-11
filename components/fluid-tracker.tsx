@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Coffee, Droplet, GlassWaterIcon as Glass, Plus } from "lucide-react"
+import request from "@/lib/request"
 
 const fluidLimit = 2000 // 2 liters in ml
 
@@ -29,7 +30,7 @@ export default function FluidTracker() {
   useEffect(() => {
     const fetchIntake = async () => {
       try {
-        const response = await fetch("/api/daily-intake")
+        const response = await request("/api/daily-intake")
         if (!response.ok) {
           throw new Error("Network response was not ok")
         }
@@ -56,7 +57,7 @@ export default function FluidTracker() {
     updateWeeklyDataToday(newIntake)
 
     try {
-      const response = await fetch("/api/daily-intake", {
+      const response = await request("/api/daily-intake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ intake: newIntake }),
@@ -75,7 +76,7 @@ export default function FluidTracker() {
     updateWeeklyDataToday(0)
 
     try {
-      const response = await fetch("/api/daily-intake", {
+      const response = await request("/api/daily-intake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ intake: 0 }),

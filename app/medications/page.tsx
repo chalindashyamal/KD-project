@@ -22,6 +22,7 @@ import { Bell, Calendar, Clock, Plus } from "lucide-react"
 import MedicationSchedule from "@/components/medication-schedule"
 import MedicationHistory from "@/components/medication-history"
 import MedicationReminders from "@/components/medication-reminders"
+import request from "@/lib/request"
 
 const formSchema = z.object({
   name: z.string().min(1, {
@@ -55,7 +56,7 @@ export default function MedicationsPage() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     async function saveMedication() {
       try {
-        const response = await fetch("/api/medications", {
+        const response = await request("/api/medications", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

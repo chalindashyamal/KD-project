@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react"
+import request from "@/lib/request"
 
 type Medication = {
   id: number
@@ -38,7 +39,7 @@ export default function Prescriptions() {
   useEffect(() => {
     async function fetchMedications() {
       try {
-        const response = await fetch("/api/medications")
+        const response = await request("/api/medications")
         if (!response.ok) {
           throw new Error("Failed to fetch medications")
         }

@@ -12,15 +12,17 @@ datasource db {
 }
 
 model User {
-  id         String   @id @default(cuid())
-  username   String   @unique
-  password   String
-  role       String
-  name       String?
-  specialty  String?
-  department String?
-  patientId  String?  @unique // Foreign key to the Patient model
-  Patient    Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  id                String    @id @default(cuid())
+  username          String    @unique
+  password          String
+  role              String
+  name              String?
+  specialty         String?
+  department        String?
+  patientId         String?   @unique // Foreign key to the Patient model
+  Patient           Patient?  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  senderMessages    Message[] @relation(name: "sender")
+  recipientMessages Message[] @relation(name: "recipient")
 }
 
 model Patient {
@@ -194,4 +196,24 @@ model Tasks {
   completedBy   String?
   completedDate DateTime?
   completedTime String?
+}
+
+model Donor {
+  id           Int    @id @default(autoincrement())
+  name         String
+  bloodType    String
+  contact      String
+  relationship String
+  healthStatus String
+  status       String
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  senderId    String
+  sender      User     @relation(name: "sender", fields: [senderId], references: [id])
+  recipientId String
+  recipient   User     @relation(name: "recipient", fields: [recipientId], references: [id])
+  content     String
+  timestamp   DateTime @default(now())
 }

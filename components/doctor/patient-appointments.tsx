@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin, Plus } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import request from "@/lib/request"
 
 interface Appointment {
   id: number
@@ -25,7 +26,7 @@ export function PatientAppointments({ patientId }: PatientAppointmentsProps) {
   useEffect(() => {
     async function fetchAppointments() {
       try {
-        const response = await fetch(`/api/appointments?patientId=${patientId}`)
+        const response = await request(`/api/appointments?patientId=${patientId}`)
         const data = await response.json()
         setAppointments(data)
       } catch (error) {

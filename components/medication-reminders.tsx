@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, Clock } from "lucide-react"
 import { useEffect, useState } from "react"
+import request from "@/lib/request"
 
 type MedicationAPI = {
   id: number
@@ -31,7 +32,7 @@ export default function MedicationReminders() {
   useEffect(() => {
     async function fetchMedications() {
       try {
-        const response = await fetch("/api/medication-schedule")
+        const response = await request("/api/medication-schedule")
         if (!response.ok) {
           throw new Error("Failed to fetch medications")
         }
@@ -56,7 +57,7 @@ export default function MedicationReminders() {
 
   const handleMarkAsTaken = async (medicationId: number, time: string) => {
     try {
-      const response = await fetch("/api/medication-schedule", {
+      const response = await request("/api/medication-schedule", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

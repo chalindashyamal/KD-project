@@ -9,6 +9,9 @@
 
 generated
 *.db
+*.db-wal
+*.db-shm
+*.db-journal
 
 # production
 /build

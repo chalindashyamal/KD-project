@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
+import request from "@/lib/request"
 
 type PatientRecord = {
   id: number;
@@ -46,7 +47,7 @@ export default function DoctorMedicalRecordsPage() {
     async function fetchMedicalRecords() {
       try {
         setLoading(true);
-        const response = await fetch("/api/medical-records");
+        const response = await request("/api/medical-records");
         if (!response.ok) {
           throw new Error("Failed to fetch medical records.");
         }
@@ -96,7 +97,7 @@ export default function DoctorMedicalRecordsPage() {
     e.preventDefault();
 
     try {
-      const response = await fetch("/api/medical-records", {
+      const response = await request("/api/medical-records", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

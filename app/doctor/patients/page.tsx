@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Search, Filter, MoreHorizontal, FileText, Calendar, Pill, Eye, Edit, Trash2, Plus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import request from "@/lib/request"
 
 type Patient = {
   id: string;
@@ -37,7 +38,7 @@ export default function DoctorPatientsPage() {
     async function fetchPatients() {
       try {
         setLoading(true);
-        const response = await fetch("/api/patients");
+        const response = await request("/api/patients");
         if (!response.ok) {
           throw new Error("Failed to fetch patients");
         }
@@ -107,7 +108,7 @@ export default function DoctorPatientsPage() {
 
     try {
       setLoading(true);
-      const response = await fetch(`/api/patient/${patientId}`, {
+      const response = await request(`/api/patient/${patientId}`, {
         method: "DELETE",
       });
 

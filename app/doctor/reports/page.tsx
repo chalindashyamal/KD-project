@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -20,53 +20,34 @@ import {
 } from "recharts"
 import { Download, FileText, Calendar, BarChartIcon, PieChartIcon, LineChartIcon, Plus } from "lucide-react"
 import Link from "next/link"
+import request from "@/lib/request"
 
 export default function DoctorReportsPage() {
   const [timeRange, setTimeRange] = useState("month")
+  const [reportData, setReportData] = useState({
+    demographicsData: [],
+    diagnosisData: [],
+    appointmentData: [],
+  });
 
-  // Sample data for patient demographics
-  const demographicsData = [
-    { name: "18-30", value: 15 },
-    { name: "31-45", value: 25 },
-    { name: "46-60", value: 35 },
-    { name: "61-75", value: 20 },
-    { name: "76+", value: 5 },
-  ]
+  const { demographicsData, diagnosisData, appointmentData } = reportData;
 
-  // Sample data for diagnosis distribution
-  const diagnosisData = [
-    { name: "ESRD", value: 40 },
-    { name: "CKD Stage 4", value: 25 },
-    { name: "CKD Stage 3", value: 15 },
-    { name: "Transplant", value: 10 },
-    { name: "Other", value: 10 },
-  ]
+  useEffect(() => {
+    async function fetchReports() {
+      try {
+        const response = await request("/api/reports");
+        if (!response.ok) {
+          throw new Error("Failed to fetch reports");
+        }
+        const data = await response.json();
+        setReportData(data);
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+      }
+    }
 
-  // Sample data for monthly appointments
-  const appointmentData = [
-    { month: "Jan", count: 45 },
-    { month: "Feb", count: 52 },
-    { month: "Mar", count: 48 },
-    { month: "Apr", count: 56 },
-    { month: "May", count: 50 },
-    { month: "Jun", count: 58 },
-    { month: "Jul", count: 54 },
-    { month: "Aug", count: 52 },
-    { month: "Sep", count: 49 },
-    { month: "Oct", count: 53 },
-    { month: "Nov", count: 55 },
-    { month: "Dec", count: 48 },
-  ]
-
-  // Sample data for lab results trends
-  const labResultsData = [
-    { month: "Jan", creatinine: 5.8, bun: 72, egfr: 9 },
-    { month: "Feb", creatinine: 5.7, bun: 70, egfr: 9 },
-    { month: "Mar", creatinine: 5.6, bun: 69, egfr: 10 },
-    { month: "Apr", creatinine: 5.4, bun: 68, egfr: 11 },
-    { month: "May", creatinine: 5.2, bun: 65, egfr: 12 },
-    { month: "Jun", creatinine: 5.3, bun: 66, egfr: 11 },
-  ]
+    fetchReports();
+  }, []);
 
   // Colors for pie charts
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"]
@@ -105,7 +86,7 @@ export default function DoctorReportsPage() {
             <BarChartIcon className="h-4 w-4" />
             Overview
           </TabsTrigger>
-          
+
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
@@ -189,7 +170,7 @@ export default function DoctorReportsPage() {
           </div>
         </TabsContent>
 
-        
+
       </Tabs>
     </div>
   )

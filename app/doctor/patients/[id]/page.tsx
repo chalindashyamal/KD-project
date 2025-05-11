@@ -13,6 +13,7 @@ import { PatientPrescriptions } from "@/components/doctor/patient-prescriptions"
 import { PatientAppointments } from "@/components/doctor/patient-appointments"
 import { PatientVitalSigns } from "@/components/doctor/patient-vital-signs"
 import { useEffect, useState } from "react"
+import request from "@/lib/request"
 
 interface Contact {
   phone: string
@@ -62,7 +63,7 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
 
   useEffect(() => {
     async function fetchPatient() {
-      const response = await fetch(`/api/patient/${patientId}`)
+      const response = await request(`/api/patient/${patientId}`)
       if (!response.ok) {
         console.error("Failed to fetch patient data")
         return

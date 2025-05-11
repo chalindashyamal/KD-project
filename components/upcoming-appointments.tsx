@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Clock, MapPin, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useEffect, useState } from "react"
+import request from "@/lib/request"
 
 interface Appointment {
   id: number
@@ -21,7 +22,7 @@ export default function UpcomingAppointments() {
   useEffect(() => {
     async function fetchAppointments() {
       try {
-        const response = await fetch("/api/appointments")
+        const response = await request("/api/appointments")
         if (!response.ok) {
           throw new Error("Failed to fetch appointments")
         }

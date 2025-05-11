@@ -14,6 +14,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Search, ArrowRight, ArrowUp, ArrowDown, Minus, Save, Clock, Activity } from "lucide-react"
 import Link from "next/link"
+import request from "@/lib/request"
 
 type Patient = {
   id: string;
@@ -70,7 +71,7 @@ export default function StaffVitalsPage() {
       if (!selectedPatient) return
 
       try {
-        const response = await fetch(`/api/vitals?patientId=${selectedPatient}`)
+        const response = await request(`/api/vitals?patientId=${selectedPatient}`)
         if (!response.ok) {
           throw new Error("Failed to fetch vitals history")
         }
@@ -92,7 +93,7 @@ export default function StaffVitalsPage() {
   useEffect(() => {
     async function fetchPatients() {
       try {
-        const response = await fetch("/api/patients");
+        const response = await request("/api/patients");
         if (!response.ok) {
           throw new Error("Failed to fetch patients");
         }
@@ -131,7 +132,7 @@ export default function StaffVitalsPage() {
   // Handle form submission
   async function onSubmit(data: VitalsFormValues) {
     try {
-      const response = await fetch("/api/vitals", {
+      const response = await request("/api/vitals", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

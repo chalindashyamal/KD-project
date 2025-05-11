@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,154 +9,132 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Plus, Check, Send } from "lucide-react"
 import Link from "next/link"
+import request from "@/lib/request"
+
+type Message = {
+  id: string
+  sender: string
+  senderId: string
+  recipient: string
+  recipientId: string
+  content: string
+  timestamp: Date
+}
+
+type Conversation = {
+  id: string
+  participant: string
+  participantId: string
+  role: string
+  lastMessage: string
+  timestamp: Date
+  messages: Message[]
+}
 
 export default function DoctorMessagesPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedConversation, setSelectedConversation] = useState<number | null>(1)
+  const [selectedConversation, setSelectedConversation] = useState<string | null>()
   const [newMessage, setNewMessage] = useState("")
-
-  // Sample conversations data
-  const conversations = [
-    {
-      id: 1,
-      recipient: {
-        id: "PT-12345",
-        name: "John Doe",
-        role: "Patient",
-      },
-      lastMessage: "I've been experiencing increased swelling in my ankles. Is this concerning?",
-      timestamp: "10:30 AM",
-      unread: true,
-    },
-    {
-      id: 2,
-      recipient: {
-        id: "S-001",
-        name: "Nurse Emily Adams",
-        role: "Staff",
-      },
-      lastMessage: "Patient Sarah Smith needs her medication dosage reviewed.",
-      timestamp: "Yesterday",
-      unread: false,
-    },
-    {
-      id: 3,
-      recipient: {
-        id: "PT-23456",
-        name: "Sarah Smith",
-        role: "Patient",
-      },
-      lastMessage: "Thank you for adjusting my medication. I'm feeling much better now.",
-      timestamp: "Yesterday",
-      unread: false,
-    },
-    {
-      id: 4,
-      recipient: {
-        id: "D-002",
-        name: "Dr. Priya Patel",
-        role: "Doctor",
-      },
-      lastMessage: "Could you review the transplant evaluation for Mike Johnson?",
-      timestamp: "Apr 28",
-      unread: false,
-    },
-    {
-      id: 5,
-      recipient: {
-        id: "PT-34567",
-        name: "Mike Johnson",
-        role: "Patient",
-      },
-      lastMessage: "I've uploaded my latest blood pressure readings to the portal.",
-      timestamp: "Apr 27",
-      unread: false,
-    },
-  ]
-
-  // Sample messages for the selected conversation
-  const messages = [
-    {
-      id: 1,
-      conversationId: 1,
-      sender: {
-        id: "PT-12345",
-        name: "John Doe",
-        role: "Patient",
-      },
-      content: "Hello Dr. Wilson, I've been experiencing increased swelling in my ankles. Is this concerning?",
-      timestamp: "10:30 AM",
-      isRead: true,
-    },
-    {
-      id: 2,
-      conversationId: 1,
-      sender: {
-        id: "D-001",
-        name: "Dr. James Wilson",
-        role: "Doctor",
-      },
-      content:
-        "Hello John, ankle swelling can be a sign of fluid retention. Have you noticed any weight gain or changes in your urine output?",
-      timestamp: "10:35 AM",
-      isRead: true,
-    },
-    {
-      id: 3,
-      conversationId: 1,
-      sender: {
-        id: "PT-12345",
-        name: "John Doe",
-        role: "Patient",
-      },
-      content: "Yes, I've gained about 2 pounds in the last few days, and I think my urine output has decreased.",
-      timestamp: "10:40 AM",
-      isRead: true,
-    },
-    {
-      id: 4,
-      conversationId: 1,
-      sender: {
-        id: "D-001",
-        name: "Dr. James Wilson",
-        role: "Doctor",
-      },
-      content:
-        "Thank you for letting me know. This could indicate fluid retention, which is common in kidney patients. I'd like you to come in for an evaluation. Can you come to the clinic tomorrow?",
-      timestamp: "10:45 AM",
-      isRead: true,
-    },
-    {
-      id: 5,
-      conversationId: 1,
-      sender: {
-        id: "PT-12345",
-        name: "John Doe",
-        role: "Patient",
-      },
-      content: "Yes, I can come in tomorrow. What time would work?",
-      timestamp: "10:50 AM",
-      isRead: false,
-    },
-  ]
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
+  const [currentUser, setCurrentUser] = useState({ id: "", name: "" })
 
   // Filter conversations based on search query
   const filteredConversations = conversations.filter(
     (conversation) =>
-      conversation.recipient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      conversation.recipient.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conversation.participant.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conversation.participantId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conversation.lastMessage.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
-  // Get messages for the selected conversation
-  const conversationMessages = messages.filter((message) => message.conversationId === selectedConversation)
+  useEffect(() => {
+    const fetchUser = async () => {
+      const response = await request("/api/user")
+      if (!response.ok) {
+        throw new Error("Network response was not ok")
+      }
+      const data = await response.json()
+      setCurrentUser({
+        id: data.id,
+        name: data.name,
+      })
+    }
+
+    fetchUser()
+  }, [])
+
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const response = await request("/api/messages")
+        if (!response.ok) {
+          throw new Error("Failed to fetch conversations")
+        }
+        const data = await response.json()
+        setConversations(data.map((conv: any) => ({
+          ...conv,
+          timestamp: new Date(conv.timestamp),
+          messages: conv.messages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp),
+          })),
+        })))
+      } catch (error) {
+        console.error("Error fetching conversations:", error)
+      }
+    }
+
+    fetchConversations()
+  }, [])
+
+  // Load messages when conversation is selected
+  useEffect(() => {
+    if (selectedConversation) {
+      const conversation = conversations.find(c => c.id === selectedConversation)
+      if (conversation) {
+        setMessages(conversation.messages)
+      } else {
+        setMessages([])
+      }
+    }
+  }, [selectedConversation, currentUser.id, currentUser.name])
+
 
   // Handle sending a new message
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (newMessage.trim() === "") return
 
-    // In a real app, you would send the message to the server
-    console.log("Sending message:", newMessage)
+    const conversation = conversations.find(c => c.id === selectedConversation)
+    if (!conversation) return
+
+    try {
+      const response = await request("/api/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: conversation.participantId,
+          content: newMessage,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to send message")
+      }
+
+      const message = await response.json()
+
+      setMessages([...messages, {
+        ...message,
+        timestamp: new Date(message.timestamp),
+      }])
+      setNewMessage("")
+
+      console.log("Message sent successfully:", message)
+    } catch (error) {
+      console.error("Error sending message:", error)
+    }
 
     // Clear the input
     setNewMessage("")
@@ -205,15 +183,14 @@ export default function DoctorMessagesPage() {
                   filteredConversations.map((conversation) => (
                     <div
                       key={conversation.id}
-                      className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer ${
-                        selectedConversation === conversation.id ? "bg-muted" : "hover:bg-muted/50"
-                      }`}
+                      className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer ${selectedConversation === conversation.id ? "bg-muted" : "hover:bg-muted/50"
+                        }`}
                       onClick={() => setSelectedConversation(conversation.id)}
                     >
                       <Avatar>
-                        <AvatarImage src="/placeholder.svg?height=40&width=40" alt={conversation.recipient.name} />
+                        <AvatarImage src="/placeholder.svg?height=40&width=40" alt={conversation.participant} />
                         <AvatarFallback>
-                          {conversation.recipient.name
+                          {conversation.participant
                             .split(" ")
                             .map((n) => n[0])
                             .join("")}
@@ -221,17 +198,16 @@ export default function DoctorMessagesPage() {
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
-                          <div className="font-medium">{conversation.recipient.name}</div>
-                          <div className="text-xs text-muted-foreground">{conversation.timestamp}</div>
+                          <div className="font-medium">{conversation.participant}</div>
+                          <div className="text-xs text-muted-foreground">{conversation.timestamp.toISOString()}</div>
                         </div>
                         <div className="text-xs text-muted-foreground">
                           <Badge variant="outline" className="mr-1">
-                            {conversation.recipient.role}
+                            {conversation.role}
                           </Badge>
-                          {conversation.recipient.id}
+                          {conversation.participantId}
                         </div>
                         <div className="text-sm truncate mt-1">{conversation.lastMessage}</div>
-                        {conversation.unread && <Badge className="mt-1">New</Badge>}
                       </div>
                     </div>
                   ))
@@ -249,45 +225,41 @@ export default function DoctorMessagesPage() {
                   <Avatar>
                     <AvatarImage
                       src="/placeholder.svg?height=40&width=40"
-                      alt={conversations.find((c) => c.id === selectedConversation)?.recipient.name || ""}
+                      alt={conversations.find((c) => c.id === selectedConversation)?.participant || ""}
                     />
                     <AvatarFallback>
                       {conversations
                         .find((c) => c.id === selectedConversation)
-                        ?.recipient.name.split(" ")
+                        ?.participant.split(" ")
                         .map((n) => n[0])
                         .join("") || ""}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <CardTitle>{conversations.find((c) => c.id === selectedConversation)?.recipient.name}</CardTitle>
+                    <CardTitle>{conversations.find((c) => c.id === selectedConversation)?.participant}</CardTitle>
                     <CardDescription>
                       <Badge variant="outline" className="mr-1">
-                        {conversations.find((c) => c.id === selectedConversation)?.recipient.role}
+                        {conversations.find((c) => c.id === selectedConversation)?.role}
                       </Badge>
-                      {conversations.find((c) => c.id === selectedConversation)?.recipient.id}
+                      {conversations.find((c) => c.id === selectedConversation)?.participantId}
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="h-[400px] overflow-y-auto p-4 space-y-4">
-                  {conversationMessages.map((message) => (
+                  {messages.map((message) => (
                     <div
                       key={message.id}
-                      className={`flex ${message.sender.role === "Doctor" ? "justify-end" : "justify-start"}`}
+                      className={`flex ${message.senderId === currentUser.id ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[80%] p-3 rounded-lg ${
-                          message.sender.role === "Doctor" ? "bg-primary text-primary-foreground" : "bg-muted"
-                        }`}
+                        className={`max-w-[80%] p-3 rounded-lg ${message.senderId === currentUser.id ? "bg-primary text-primary-foreground" : "bg-muted"
+                          }`}
                       >
                         <div className="text-sm">{message.content}</div>
                         <div className="flex items-center justify-end gap-1 mt-1">
-                          <span className="text-xs opacity-70">{message.timestamp}</span>
-                          {message.sender.role === "Doctor" && message.isRead && (
-                            <Check className="h-3 w-3 opacity-70" />
-                          )}
+                          <span className="text-xs opacity-70">{message.timestamp.toISOString()}</span>
                         </div>
                       </div>
                     </div>

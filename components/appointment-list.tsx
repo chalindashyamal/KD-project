@@ -5,6 +5,7 @@ import { format, isSameDay } from "date-fns"
 import { Clock, MapPin, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useEffect, useState } from "react"
+import request from "@/lib/request"
 
 interface Appointment {
   id: number
@@ -32,7 +33,7 @@ export default function AppointmentList({ selectedDate }: AppointmentListProps) 
         const query = selectedDate
           ? `?date=${format(selectedDate, "yyyy-MM-dd")}`
           : ""
-        const response = await fetch(`/api/appointments${query}`)
+        const response = await request(`/api/appointments${query}`)
         if (!response.ok) {
           console.error("Failed to fetch appointments")
           return

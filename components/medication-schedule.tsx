@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Clock, Check } from "lucide-react"
 import { useEffect, useState } from "react"
+import request from "@/lib/request"
 
 type Medication = {
   id: number
@@ -23,7 +24,7 @@ export default function MedicationSchedule() {
   useEffect(() => {
     async function fetchMedications() {
       try {
-        const response = await fetch("/api/medication-schedule")
+        const response = await request("/api/medication-schedule")
         if (!response.ok) {
           throw new Error("Failed to fetch medications")
         }
@@ -48,7 +49,7 @@ export default function MedicationSchedule() {
 
   const handleMarkAsTaken = async (medicationId: number, time: string) => {
     try {
-      const response = await fetch("/api/medication-schedule", {
+      const response = await request("/api/medication-schedule", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

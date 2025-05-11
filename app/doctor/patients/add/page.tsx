@@ -11,6 +11,7 @@ import * as z from "zod"
 import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import request from "@/lib/request"
 
 // Form schema
 const patientFormSchema = z.object({
@@ -59,7 +60,7 @@ export default function AddPatientPage() {
 
   async function onSubmit(data: PatientFormValues) {
     try {
-      const response = await fetch("/api/patient", {
+      const response = await request("/api/patient", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

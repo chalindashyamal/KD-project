@@ -13,6 +13,7 @@ import { format } from "date-fns"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import request from "@/lib/request"
 
 interface Appointment {
   id: string
@@ -46,7 +47,7 @@ export default function DoctorAppointmentsPage() {
   useEffect(() => {
     async function fetchAppointments() {
       try {
-        const response = await fetch("/api/appointments")
+        const response = await request("/api/appointments")
         const data = await response.json()
         setAppointments(data.map((appointment: any) => ({
           ...appointment,
@@ -105,7 +106,7 @@ export default function DoctorAppointmentsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const response = await fetch("/api/appointments", {
+      const response = await request("/api/appointments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

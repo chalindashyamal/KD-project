@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { format, subDays } from "date-fns"
+import request from "@/lib/request"
 
 type Medication = {
   id: number
@@ -38,7 +39,7 @@ export default function MedicationHistory() {
     async function fetchMedications() {
       try {
         const formattedDate = format(date || new Date(), "yyyy-MM-dd")
-        const response = await fetch(`/api/medication-schedule?date=${formattedDate}`)
+        const response = await request(`/api/medication-schedule?date=${formattedDate}`)
         if (!response.ok) {
           throw new Error("Failed to fetch medications")
         }

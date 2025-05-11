@@ -1,49 +1,55 @@
+"use client"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Clock, ArrowRight } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useState } from "react"
+import request from "@/lib/request"
+
+interface Task {
+  id: number;
+  title: string;
+  patientId: string;
+  patientName: string;
+  dueDate: Date; // ISO string or Date object
+  dueTime: string;
+  priority: string;
+  assignedTo: string;
+  status: string;
+  completed: boolean;
+  notes?: string;
+  completedBy?: string;
+  completedDate?: Date; // ISO string or Date object
+  completedTime?: string;
+}
+
 
 export function StaffTaskList() {
-  // Sample task data
-  const tasks = [
-    {
-      id: 1,
-      title: "Record vitals for John Doe",
-      patientId: "PT-12345",
-      patientName: "John Doe",
-      dueTime: "11:00 AM",
-      priority: "High",
-      completed: false,
-    },
-    {
-      id: 2,
-      title: "Administer medication to Sarah Smith",
-      patientId: "PT-23456",
-      patientName: "Sarah Smith",
-      dueTime: "11:30 AM",
-      priority: "Medium",
-      completed: false,
-    },
-    {
-      id: 3,
-      title: "Prepare dialysis machine for Robert Wilson",
-      patientId: "PT-56789",
-      patientName: "Robert Wilson",
-      dueTime: "12:00 PM",
-      priority: "High",
-      completed: false,
-    },
-    {
-      id: 4,
-      title: "Check fluid balance for Mike Johnson",
-      patientId: "PT-34567",
-      patientName: "Mike Johnson",
-      dueTime: "1:30 PM",
-      priority: "Medium",
-      completed: false,
-    },
-  ]
+  const [tasks, setTasks] = useState<Task[]>([])
+
+  useEffect(() => {
+    async function loadTasks() {
+      try {
+        const response = await request('/api/tasks');
+        if (!response.ok) {
+          throw new Error('Failed to fetch tasks');
+        }
+        const data = await response.json();
+        setTasks(data.map((task: any) => ({
+          ...task,
+          patientName: `${task.patient.firstName} ${task.patient.lastName}`,
+          dueDate: new Date(task.dueDate), // Convert ISO string to Date object
+          completedDate: task.completedDate ? new Date(task.completedDate) : undefined, // Convert ISO string to Date object
+        })));
+      } catch (error) {
+        console.error('Error loading tasks:', error);
+      }
+    }
+
+    loadTasks();
+  }, []);
 
   const getPriorityBadgeVariant = (priority: string) => {
     switch (priority.toLowerCase()) {
