@@ -1,19 +1,13 @@
-
 "use client"
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { Heart, Users, Calendar, FileText, Clock, CheckCircle, HelpCircle, ArrowRight, MessageSquare } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Heart, Users, CheckCircle, MessageSquare } from "lucide-react"
 import request from "@/lib/request"
 
 interface Donor {
@@ -28,8 +22,9 @@ interface Donor {
 }
 
 export default function DonorProgramPage() {
-  const [showDonorForm, setShowDonorForm] = useState(false)
   const [donors, setDonors] = useState<Donor[]>([])
+  const [selectedDonorId, setSelectedDonorId] = useState<number | null>(null)
+  const [newMessage, setNewMessage] = useState("")
 
   useEffect(() => {
     async function fetchDonors() {
@@ -50,64 +45,6 @@ export default function DonorProgramPage() {
 
     fetchDonors();
   }, []);
-
-  const [newDonor, setNewDonor] = useState({
-    name: "",
-    bloodType: "",
-    contact: "",
-    relationship: "",
-    healthStatus: "",
-  })
-  const [selectedDonorId, setSelectedDonorId] = useState<number | null>(null)
-  const [newMessage, setNewMessage] = useState("")
-
-  const handleDonorInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setNewDonor((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleDonorSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      const response = await request('/api/donors', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: newDonor.name,
-          bloodType: newDonor.bloodType,
-          contact: newDonor.contact,
-          relationship: newDonor.relationship,
-          healthStatus: newDonor.healthStatus,
-          status: "Initial Screening",
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create a new donor');
-      }
-
-      const createdDonor = await response.json();
-
-      createdDonor.messages = createdDonor.messages || [];
-      // Update the local state with the newly created donor
-      setDonors((prevDonors) => [...prevDonors, createdDonor]);
-
-      // Reset the form
-      setNewDonor({
-        name: '',
-        bloodType: '',
-        contact: '',
-        relationship: '',
-        healthStatus: '',
-      });
-      setShowDonorForm(false);
-    } catch (error) {
-      console.error('Error creating donor:', error);
-    }
-  };
 
   const handleMessageSubmit = (donorId: number) => {
     if (!newMessage.trim()) return
@@ -138,110 +75,7 @@ export default function DonorProgramPage() {
           <h1 className="text-3xl font-bold tracking-tight">Kidney Donor Program</h1>
           <p className="text-muted-foreground">Information and resources for kidney transplantation</p>
         </div>
-        <Dialog open={showDonorForm} onOpenChange={setShowDonorForm}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Heart className="h-4 w-4" />
-              Register as Donor
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Register as Donor</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleDonorSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={newDonor.name}
-                  onChange={handleDonorInputChange}
-                  placeholder="Enter full name"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bloodType">Blood Type</Label>
-                <Select
-                  name="bloodType"
-                  value={newDonor.bloodType}
-                  onValueChange={(value) => setNewDonor((prev) => ({ ...prev, bloodType: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select blood type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="A+">A+</SelectItem>
-                    <SelectItem value="A-">A-</SelectItem>
-                    <SelectItem value="B+">B+</SelectItem>
-                    <SelectItem value="B-">B-</SelectItem>
-                    <SelectItem value="AB+">AB+</SelectItem>
-                    <SelectItem value="AB-">AB-</SelectItem>
-                    <SelectItem value="O+">O+</SelectItem>
-                    <SelectItem value="O-">O-</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="contact">Contact (Email or Phone)</Label>
-                <Input
-                  id="contact"
-                  name="contact"
-                  value={newDonor.contact}
-                  onChange={handleDonorInputChange}
-                  placeholder="Enter email or phone"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="relationship">Relationship to Patient</Label>
-                <Select
-                  name="relationship"
-                  value={newDonor.relationship}
-                  onValueChange={(value) => setNewDonor((prev) => ({ ...prev, relationship: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select relationship" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Family">Family</SelectItem>
-                    <SelectItem value="Friend">Friend</SelectItem>
-                    <SelectItem value="Altruistic">Altruistic</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="healthStatus">Health Status</Label>
-                <Textarea
-                  id="healthStatus"
-                  name="healthStatus"
-                  value={newDonor.healthStatus}
-                  onChange={handleDonorInputChange}
-                  placeholder="Briefly describe your health status"
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end gap-4">
-                <Button variant="outline" type="button" onClick={() => setShowDonorForm(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Register</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
-
-
-
-
 
       <Tabs defaultValue="about">
         <TabsList className="grid w-full grid-cols-4">
@@ -377,9 +211,6 @@ export default function DonorProgramPage() {
                     </div>
                   </li>
                 </ol>
-              </div>
-
-              <div className="mt-4 flex justify-center">
               </div>
             </CardContent>
           </Card>
@@ -525,10 +356,6 @@ export default function DonorProgramPage() {
             </CardContent>
           </Card>
         </TabsContent>
-
-
-
-
       </Tabs>
     </div>
   )

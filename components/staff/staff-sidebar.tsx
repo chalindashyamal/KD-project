@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Users, Calendar, Activity, Settings, LogOut, Pill, ClipboardList, Droplets, Package } from "lucide-react"
+import { Home, Users, Calendar, Activity, Settings, LogOut, Pill, ClipboardList, Droplets, Package, Heart } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const routes = [
@@ -46,6 +46,11 @@ const routes = [
     icon: Package,
     href: "/staff/inventory",
   },
+  {
+    label: "Donors",
+    icon: Heart,
+    href: "/staff/donor",
+  },
 ]
 
 export function StaffSidebar() {
@@ -70,9 +75,6 @@ export function StaffSidebar() {
           </Link>
         ))}
       </div>
-
-      
     </div>
   )
 }
-

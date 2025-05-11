@@ -1,5 +1,4 @@
 import { PrismaClient, User } from '@/generated/prisma';
-import { z } from "zod"
 import { withAuth } from '@/lib/auth';
 
 const prisma = new PrismaClient();
@@ -34,13 +33,16 @@ function buildConversationList(messages: Message[], currentUserId: string): Conv
         const otherParticipantName =
             message.senderId === currentUserId ? message.recipient : message.sender;
 
+        const otherParticipantRole =
+            message.senderId === currentUserId ? "recipient" : "sender";
+
         if (!conversationMap.has(otherParticipantId)) {
             conversationMap.set(otherParticipantId, {
                 id: `${currentUserId}-${otherParticipantId}`,
-                participant: otherParticipantName,
+                participant: otherParticipantName || "Unknown",
                 participantId: otherParticipantId,
-                role: message.senderId === currentUserId ? "recipient" : "sender",
-                lastMessage: message.content,
+                role: otherParticipantRole,
+                lastMessage: message.content || "",
                 timestamp: message.timestamp,
                 messages: [message],
             });
@@ -50,7 +52,7 @@ function buildConversationList(messages: Message[], currentUserId: string): Conv
 
             // Update the last message and timestamp if the current message is newer
             if (message.timestamp > conversation.timestamp) {
-                conversation.lastMessage = message.content;
+                conversation.lastMessage = message.content || "";
                 conversation.timestamp = message.timestamp;
             }
         }
@@ -64,6 +66,20 @@ export default withAuth(async function handler(req, res) {
         try {
             const { to, content } = req.body;
 
+            const sender = await prisma.user.findUnique({
+                where: { id: req.user.id },
+                select: { name: true },
+            });
+
+            const recipient = await prisma.user.findUnique({
+                where: { id: to },
+                select: { name: true, role: true },
+            });
+
+            if (!sender || !recipient) {
+                return res.status(404).json({ error: "Sender or recipient not found." });
+            }
+
             const message = await prisma.message.create({
                 data: {
                     senderId: req.user.id,
@@ -73,14 +89,21 @@ export default withAuth(async function handler(req, res) {
                 },
             });
 
-            res.status(201).json(message);
+            res.status(201).json({
+                id: message.id,
+                sender: sender.name || "Unknown",
+                senderId: message.senderId,
+                recipient: recipient.name || "Unknown",
+                recipientId: message.recipientId,
+                content: message.content,
+                timestamp: message.timestamp,
+            });
         } catch (error) {
-            console.error("Error creating prescription:", error);
-            res.status(500).json({ error: "Failed to create prescription." });
+            console.error("Error creating message:", error);
+            res.status(500).json({ error: "Failed to create message." });
         }
     } else if (req.method === "GET") {
         try {
-
             const msgs = await prisma.message.findMany({
                 where: {
                     OR: [
@@ -91,12 +114,16 @@ export default withAuth(async function handler(req, res) {
                 include: {
                     sender: {
                         select: {
-                            name: true
+                            id: true,
+                            name: true,
+                            role: true
                         }
                     },
                     recipient: {
                         select: {
-                            name: true
+                            id: true,
+                            name: true,
+                            role: true
                         }
                     }
                 },
@@ -104,54 +131,58 @@ export default withAuth(async function handler(req, res) {
 
             const messages = msgs.map((message) => ({
                 id: message.id,
-                sender: message.sender.name,
+                sender: message.sender?.name || "Unknown",
                 senderId: message.senderId,
-                recipient: message.recipient.name,
+                recipient: message.recipient?.name || "Unknown",
                 recipientId: message.recipientId,
-                content: message.content,
+                content: message.content || "",
                 timestamp: message.timestamp
             }) as Message);
 
-            const conversations = buildConversationList(messages, req.user.id);
-            function addUser(user: User) {
-                if (user.id === req.user.id) {
-                    return; // Skip the current user
-                }
-                const existingConversation = conversations.find(
-                    (conversation) => conversation.participantId === user.id
-                );
-                if (existingConversation) {
-                    return; // Skip if the conversation already exists
-                }
-                conversations.push({
-                    id: user.id,
-                    participant: user.name || "",
-                    participantId: user.id,
-                    role: user.role,
-                    lastMessage: "",
-                    timestamp: new Date(),
-                    messages: [],
-                });
-            }
-            if (req.user.role === "patient") {
-                const users = await prisma.user.findMany({
+            let conversations = buildConversationList(messages, req.user.id);
+
+            // Fetch all relevant users to ensure empty conversations are included
+            const users = req.user.role === "patient"
+                ? await prisma.user.findMany({
                     where: {
                         OR: [
                             { role: "doctor" },
                             { role: "staff" }
                         ]
                     }
+                })
+                : await prisma.user.findMany();
+
+            users.forEach((user: User) => {
+                if (user.id === req.user.id) return; // Skip the current user
+
+                const existingConversation = conversations.find(
+                    (conversation) => conversation.participantId === user.id
+                );
+                if (existingConversation) {
+                    // Update role based on actual user role
+                    existingConversation.role = user.role || "unknown";
+                    return;
+                }
+
+                conversations.push({
+                    id: `${req.user.id}-${user.id}`,
+                    participant: user.name || "Unknown",
+                    participantId: user.id,
+                    role: user.role || "unknown",
+                    lastMessage: "",
+                    timestamp: new Date(),
+                    messages: [],
                 });
-                users.forEach(addUser);
-            } else {
-                const users = await prisma.user.findMany();
-                users.forEach(addUser);
-            }
+            });
+
+            // Sort conversations by timestamp (most recent first)
+            conversations.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
             res.status(200).json(conversations);
         } catch (error) {
-            console.error("Error fetching prescriptions:", error);
-            res.status(500).json({ error: "Failed to fetch prescriptions." });
+            console.error("Error fetching messages:", error);
+            res.status(500).json({ error: "Failed to fetch messages." });
         }
     } else {
         res.status(405).json({ error: "Method Not Allowed" });

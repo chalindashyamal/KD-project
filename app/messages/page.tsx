@@ -26,10 +26,8 @@ import {
   Search,
   User,
   Plus,
-  AlertCircle,
 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { Badge } from "@/components/ui/badge"
 import request from "@/lib/request"
 
 type Message = {
@@ -65,15 +63,20 @@ export default function MessagesPage() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const response = await request("/api/user")
-      if (!response.ok) {
-        throw new Error("Network response was not ok")
+      try {
+        const response = await request("/api/user")
+        if (!response.ok) {
+          throw new Error("Network response was not ok")
+        }
+        const data = await response.json()
+        setCurrentUser({
+          id: data.id || "",
+          name: data.name || "Unknown",
+        })
+      } catch (error) {
+        console.error("Error fetching user:", error)
+        setCurrentUser({ id: "", name: "Unknown" })
       }
-      const data = await response.json()
-      setCurrentUser({
-        id: data.id,
-        name: data.name,
-      })
     }
 
     fetchUser()
@@ -89,11 +92,15 @@ export default function MessagesPage() {
         const data = await response.json()
         setConversations(data.map((conv: any) => ({
           ...conv,
-          timestamp: new Date(conv.timestamp),
-          messages: conv.messages.map((msg: any) => ({
+          participant: conv.participant || "Unknown",
+          participantId: conv.participantId || "",
+          role: conv.role || "unknown",
+          lastMessage: conv.lastMessage || "",
+          timestamp: new Date(conv.timestamp || Date.now()),
+          messages: conv.messages?.map((msg: any) => ({
             ...msg,
-            timestamp: new Date(msg.timestamp),
-          })),
+            timestamp: new Date(msg.timestamp || Date.now()),
+          })) || [],
         })))
         setIsLoading(false)
       } catch (error) {
@@ -102,29 +109,39 @@ export default function MessagesPage() {
           description: "Failed to load conversations. Please try again later.",
           variant: "destructive",
         })
+        setIsLoading(false)
       }
     }
 
+    // Initial fetch
     fetchConversations()
+
+    // Poll every 10 seconds
+    const intervalId = setInterval(fetchConversations, 10000)
+
+    // Clean up interval on unmount
+    return () => clearInterval(intervalId)
   }, [])
 
   // Load messages when conversation is selected
   useEffect(() => {
     if (selectedConversation) {
       const conversation = conversations.find(c => c.id === selectedConversation)
-      if (conversation) {
+      if (conversation && conversation.messages) {
         setMessages(conversation.messages)
       } else {
         setMessages([])
       }
+    } else {
+      setMessages([])
     }
-  }, [selectedConversation, currentUser.id, currentUser.name])
+  }, [selectedConversation, conversations])
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return
 
     const conversation = conversations.find(c => c.id === selectedConversation)
-    if (!conversation) return
+    if (!conversation || !conversation.participantId) return
 
     try {
       const response = await request("/api/messages", {
@@ -144,10 +161,35 @@ export default function MessagesPage() {
 
       const message = await response.json()
 
-      setMessages([...messages, {
-        ...message,
-        timestamp: new Date(message.timestamp),
-      }])
+      // Update messages in the current conversation
+      setMessages((prev) => [
+        ...prev,
+        {
+          ...message,
+          timestamp: new Date(message.timestamp || Date.now()),
+        },
+      ])
+
+      // Update the conversation list with the new message
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.id === selectedConversation
+            ? {
+                ...conv,
+                messages: [
+                  ...conv.messages,
+                  {
+                    ...message,
+                    timestamp: new Date(message.timestamp || Date.now()),
+                  },
+                ],
+                lastMessage: message.content,
+                timestamp: new Date(message.timestamp || Date.now()),
+              }
+            : conv
+        ).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      )
+
       setNewMessage("")
 
       toast({
@@ -164,9 +206,10 @@ export default function MessagesPage() {
   }
 
   const filteredConversations = conversations.filter(conv => {
-    const matchesSearch = conv.participant.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      !conv.lastMessage || conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = filterRole === "all" || conv.role.toLowerCase() === filterRole.toLowerCase()
+    const matchesSearch = 
+      (conv.participant?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (conv.lastMessage?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+    const matchesRole = filterRole === "all" || (conv.role?.toLowerCase() || "") === filterRole.toLowerCase()
     return matchesSearch && matchesRole
   })
 
@@ -195,10 +238,8 @@ export default function MessagesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
-
                 <SelectItem value="doctor">Doctors</SelectItem>
-                <SelectItem value="nurse">Staff</SelectItem>
-
+                <SelectItem value="staff">Staff</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -229,17 +270,17 @@ export default function MessagesPage() {
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between">
-                        <p className="font-medium truncate">{conversation.participant}</p>
+                        <p className="font-medium truncate">{conversation.participant || "Unknown"}</p>
                         <p className="text-xs text-muted-foreground">
                           {conversation.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
                       <div className="flex justify-between">
                         <p className="text-sm text-muted-foreground truncate">
-                          {conversation.lastMessage}
+                          {conversation.lastMessage || "No messages yet"}
                         </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">{conversation.role}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{conversation.role || "Unknown"}</p>
                     </div>
                   </div>
                 ))}
@@ -263,10 +304,10 @@ export default function MessagesPage() {
                 </Avatar>
                 <div>
                   <CardTitle>
-                    {conversations.find(c => c.id === selectedConversation)?.participant}
+                    {conversations.find(c => c.id === selectedConversation)?.participant || "Unknown"}
                   </CardTitle>
                   <CardDescription>
-                    {conversations.find(c => c.id === selectedConversation)?.role}
+                    {conversations.find(c => c.id === selectedConversation)?.role || "Unknown"}
                   </CardDescription>
                 </div>
               </div>
