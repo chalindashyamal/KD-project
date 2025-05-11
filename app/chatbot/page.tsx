@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Send, Bot, } from "lucide-react"
+import { Send, Bot, User as UserIcon } from "lucide-react"
 import request from "@/lib/request"
 
 // Sample suggested questions
@@ -30,29 +30,39 @@ export default function ChatbotPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
   const [name, setName] = useState("")
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Fetch user name on mount
   useEffect(() => {
     const fetchName = async () => {
-      const response = await request("/api/patient")
-      if (!response.ok) {
-        throw new Error("Network response was not ok")
+      try {
+        const response = await request("/api/patient")
+        if (!response.ok) {
+          throw new Error("Failed to fetch patient data")
+        }
+        const data = await response.json()
+        setName(`${data.firstName} ${data.lastName}`)
+      } catch (error) {
+        console.error("Error fetching patient name:", error)
+        setName("Friend") // Friendly fallback name
       }
-      const data = await response.json()
-      setName(`${data.firstName} ${data.lastName}`)
     }
     fetchName()
   }, [])
 
+  // Set initial message once name is fetched
   useEffect(() => {
-    setMessages([
-      {
-        role: "assistant",
-        content: `Hello ${name}! I'm your KidneyCare AI assistant. How can I help you today?`,
-        timestamp: "10:30 AM",
-      },
-    ])
+    if (name) {
+      setMessages([
+        {
+          role: "assistant",
+          content: `Hi ${name}! 😊 I'm your KidneyCare AI assistant, here to support you with kidney health questions. What’s on your mind today?`,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ])
+    }
   }, [name])
 
   // Auto-scroll to bottom of messages
@@ -64,8 +74,13 @@ export default function ChatbotPage() {
     const content = (msg || input).trim()
     if (content === "") return
 
+    // Clear any existing debounce timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
+    }
+
     // Add user message
-    const userMessage = {
+    const userMessage: Message = {
       role: "user",
       content: content,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -75,34 +90,51 @@ export default function ChatbotPage() {
     setIsTyping(true)
 
     try {
-      // Simulate API call to get AI response
-      const response = await request("/api/chatbot", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ history: messages.map((msg) => ({ role: msg.role, content: msg.content })) }),
-      })
+      // Limit history to last 5 messages to reduce API payload
+      const recentHistory = messages.slice(-5).map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }))
 
-      if (!response.ok) {
-        throw new Error("Network response was not ok")
-      }
+      // Add the current user message to the history
+      const historyToSend = [...recentHistory, { role: "user", content }]
 
-      const data = await response.json()
-      const aiResponse = {
-        role: "assistant",
-        content: data.response,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      }
-      setMessages((prev) => [...prev, aiResponse])
+      // Simulate API call to get AI response with a debounce
+      debounceTimeoutRef.current = setTimeout(async () => {
+        const response = await request("/api/chatbot", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ history: historyToSend }),
+        })
+
+        if (!response.ok) {
+          throw new Error(`Network response was not ok: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        // Remove Markdown bold markers (**) and split into paragraphs
+        const cleanContent = data.response.replace(/\*\*(.*?)\*\*/g, "$1").split("\n").map((line: string, index: number) => (
+          line.trim() ? `<p key=${index} class="mb-2">${line.trim()}</p>` : ""
+        )).join("");
+        const aiResponse: Message = {
+          role: "assistant",
+          content: cleanContent,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        }
+        setMessages((prev) => [...prev, aiResponse])
+        setIsTyping(false)
+      }, 500) // 500ms debounce delay
     } catch (error) {
       console.error("Error fetching AI response:", error)
-      const errorMessage = {
+      const errorMessage: Message = {
         role: "assistant",
-        content: "Sorry, I couldn't process your request. Please try again later.",
+        content: `Oh no, ${name}! 😔 I’m having trouble responding right now. Please try again later, and feel free to reach out to your healthcare provider if you need urgent help.`,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       }
       setMessages((prev) => [...prev, errorMessage])
+      setIsTyping(false)
     }
   }
 
@@ -112,17 +144,16 @@ export default function ChatbotPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">KidneyCare Assistant</h1>
-          <p className="text-muted-foreground">Your AI-powered guide for kidney health information</p>
+          <p className="text-muted-foreground">Your friendly AI guide for kidney health</p>
         </div>
-
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        <Card className="md:col-span-2 overflow-hidden border-none shadow-md h-[600px] flex flex-col">
+        <Card className="md:col-span-2 overflow-hidden border-none shadow-lg h-[600px] flex flex-col">
           <CardHeader className="bg-primary text-primary-foreground px-6 py-4">
             <div className="flex items-center">
               <Bot className="h-6 w-6 mr-2" />
@@ -130,46 +161,56 @@ export default function ChatbotPage() {
             </div>
           </CardHeader>
           <CardContent className="p-0 flex-1 flex flex-col">
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="space-y-4">
-                {messages.map((message, index) => (
-                  <div key={index} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`flex max-w-[80%] ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
-                        } rounded-lg p-3`}
-                    >
-                      {message.role === "assistant" && (
-                        <Avatar className="h-8 w-8 mr-2">
-                          <AvatarImage src="/placeholder.svg?height=32&width=32" alt="AI" />
-                          <AvatarFallback className="bg-primary text-primary-foreground">AI</AvatarFallback>
-                        </Avatar>
-                      )}
-                      <div>
-                        <div className="text-sm">{message.content}</div>
-                        <div className="text-xs mt-1 opacity-70 text-right">{message.timestamp}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {isTyping && (
-                  <div className="flex justify-start">
-                    <div className="flex max-w-[80%] bg-muted rounded-lg p-3">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ maxHeight: "500px" }}>
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`flex items-start max-w-[75%] rounded-lg p-3 ${message.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-foreground"
+                      } shadow-md`}
+                    style={{ borderRadius: "10px 10px 10px 0" }}
+                  >
+                    {message.role === "assistant" ? (
                       <Avatar className="h-8 w-8 mr-2">
-                        <AvatarImage src="/placeholder.svg?height=32&width=32" alt="AI" />
+                        <AvatarImage src="/placeholder-ai.svg?height=32&width=32" alt="AI" />
                         <AvatarFallback className="bg-primary text-primary-foreground">AI</AvatarFallback>
                       </Avatar>
-                      <div className="flex items-center">
-                        <div className="typing-indicator">
-                          <span></span>
-                          <span></span>
-                          <span></span>
-                        </div>
-                      </div>
+                    ) : (
+                      <Avatar className="h-8 w-8 mr-2">
+                        <AvatarImage src="/placeholder-user.svg?height=32&width=32" alt="You" />
+                        <AvatarFallback className="bg-secondary text-secondary-foreground">You</AvatarFallback>
+                      </Avatar>
+                    )}
+                    <div className="space-y-2">
+                      <div
+                        className="text-sm leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: message.content }}
+                      />
+                      <div className="text-xs opacity-70 text-right">{message.timestamp}</div>
                     </div>
                   </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
+                </div>
+              ))}
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="flex items-start max-w-[75%] bg-muted rounded-lg p-3 shadow-md" style={{ borderRadius: "10px 10px 10px 0" }}>
+                    <Avatar className="h-8 w-8 mr-2">
+                      <AvatarImage src="/placeholder-ai.svg?height=32&width=32" alt="AI" />
+                      <AvatarFallback className="bg-primary text-primary-foreground">AI</AvatarFallback>
+                    </Avatar>
+                    <div className="flex items-center space-x-1">
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: "0.2s" }}></span>
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: "0.4s" }}></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
             </div>
             <div className="p-4 border-t">
               <form
@@ -180,13 +221,13 @@ export default function ChatbotPage() {
                 className="flex gap-2"
               >
                 <Input
-                  placeholder="Type your question here..."
+                  placeholder="Ask me anything about kidney health..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 border-primary"
                 />
-                <Button type="submit" size="icon">
-                  <Send className="h-4 w-4" />
+                <Button type="submit" size="icon" className="bg-primary hover:bg-primary/90">
+                  <Send className="h-4 w-4 text-white" />
                 </Button>
               </form>
             </div>
@@ -194,7 +235,7 @@ export default function ChatbotPage() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="overflow-hidden border-none shadow-md">
+          <Card className="overflow-hidden border-none shadow-lg">
             <CardHeader className="bg-primary text-primary-foreground px-6 py-4">
               <CardTitle>Suggested Questions</CardTitle>
             </CardHeader>
@@ -204,7 +245,7 @@ export default function ChatbotPage() {
                   <Button
                     key={index}
                     variant="outline"
-                    className="w-full justify-start text-left h-auto py-2 px-3"
+                    className="w-full justify-start text-left h-auto py-2 px-3 hover:bg-muted transition-colors"
                     onClick={() => handleSuggestedQuestion(question)}
                   >
                     {question}
@@ -213,13 +254,8 @@ export default function ChatbotPage() {
               </div>
             </CardContent>
           </Card>
-
-
         </div>
       </div>
-
-
     </div>
   )
 }
-
