@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Heart, MessageSquare } from "lucide-react"
+import { Heart, Mail } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 import request from "@/lib/request"
 
 interface Donor {
@@ -21,14 +22,15 @@ interface Donor {
   relationship: string
   healthStatus: string
   status: string
-  messages: { sender: string; content: string; timestamp: string }[]
 }
 
 export default function StaffDonorPage() {
+  const { toast } = useToast()
   const [showDonorForm, setShowDonorForm] = useState(false)
   const [donors, setDonors] = useState<Donor[]>([])
   const [selectedDonorId, setSelectedDonorId] = useState<number | null>(null)
-  const [newMessage, setNewMessage] = useState("")
+  const [emailSubject, setEmailSubject] = useState("")
+  const [emailBody, setEmailBody] = useState("")
   const [newDonor, setNewDonor] = useState({
     name: "",
     bloodType: "",
@@ -41,19 +43,12 @@ export default function StaffDonorPage() {
     async function fetchDonors() {
       try {
         const response = await request('/api/donors');
-        if (!response.ok) {
-          throw new Error('Failed to fetch donors');
-        }
-        const data: Donor[] = await response.json();
-        setDonors(data.map((donor) => ({
-          ...donor,
-          messages: donor.messages || [],
-        })));
+        if (!response.ok) throw new Error('Failed to fetch donors');
+        setDonors(await response.json());
       } catch (error) {
         console.error('Error fetching donors:', error);
       }
     }
-
     fetchDonors();
   }, []);
 
@@ -64,13 +59,10 @@ export default function StaffDonorPage() {
 
   const handleDonorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
       const response = await request('/api/donors', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newDonor.name,
           bloodType: newDonor.bloodType,
@@ -80,51 +72,48 @@ export default function StaffDonorPage() {
           status: "Initial Screening",
         }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create a new donor');
-      }
-
+      if (!response.ok) throw new Error('Failed to create donor');
       const createdDonor = await response.json();
-
-      createdDonor.messages = createdDonor.messages || [];
-      // Update the local state with the newly created donor
-      setDonors((prevDonors) => [...prevDonors, createdDonor]);
-
-      // Reset the form
-      setNewDonor({
-        name: '',
-        bloodType: '',
-        contact: '',
-        relationship: '',
-        healthStatus: '',
-      });
+      setDonors((prev) => [...prev, createdDonor]);
+      setNewDonor({ name: '', bloodType: '', contact: '', relationship: '', healthStatus: '' });
       setShowDonorForm(false);
     } catch (error) {
       console.error('Error creating donor:', error);
     }
   };
 
-  const handleMessageSubmit = (donorId: number) => {
-    if (!newMessage.trim()) return
-    const updatedDonors = donors.map((donor) => {
-      if (donor.id === donorId) {
-        return {
-          ...donor,
-          messages: [
-            ...donor.messages,
-            {
-              sender: "Staff",
-              content: newMessage,
-              timestamp: new Date().toLocaleString(),
-            },
-          ],
-        }
-      }
-      return donor
-    })
-    setDonors(updatedDonors)
-    setNewMessage("")
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  const handleSendEmail = async (donorId: number) => {
+    if (!emailSubject.trim() || !emailBody.trim()) {
+      toast({ title: "Error", description: "Please provide both a subject and message.", variant: "destructive" });
+      return;
+    }
+
+    const donor = donors.find(d => d.id === donorId);
+    if (!donor || !validateEmail(donor.contact)) {
+      toast({ title: "Error", description: "Invalid donor or email.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const response = await request('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: donor.contact, subject: emailSubject, body: emailBody }),
+      });
+
+      if (!response.ok) throw new Error('Failed to send email');
+
+      toast({ title: "Success", description: `Email sent to ${donor.name}.` });
+      setEmailSubject(""); setEmailBody(""); setSelectedDonorId(null);
+    } catch (error) {
+      console.error('Email error:', error.message);
+      toast({ title: "Error", description: `Failed to send email: ${error.message}`, variant: "destructive" });
+    }
   }
 
   return (
@@ -132,14 +121,11 @@ export default function StaffDonorPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Staff Donor Management</h1>
-          <p className="text-muted-foreground">Manage and register potential kidney donors</p>
+          <p className="text-muted-foreground">Manage and register potential donors</p>
         </div>
         <Dialog open={showDonorForm} onOpenChange={setShowDonorForm}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Heart className="h-4 w-4" />
-              Register New Donor
-            </Button>
+            <Button className="gap-2"><Heart className="h-4 w-4" /> Register Donor</Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
@@ -148,61 +134,28 @@ export default function StaffDonorPage() {
             <form onSubmit={handleDonorSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={newDonor.name}
-                  onChange={handleDonorInputChange}
-                  placeholder="Enter full name"
-                  required
-                />
+                <Input id="name" name="name" value={newDonor.name} onChange={handleDonorInputChange} placeholder="Name" required />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="bloodType">Blood Type</Label>
-                <Select
-                  name="bloodType"
-                  value={newDonor.bloodType}
-                  onValueChange={(value) => setNewDonor((prev) => ({ ...prev, bloodType: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select blood type" />
-                  </SelectTrigger>
+                <Select name="bloodType" value={newDonor.bloodType} onValueChange={(value) => setNewDonor((prev) => ({ ...prev, bloodType: value }))}>
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="A+">A+</SelectItem>
-                    <SelectItem value="A-">A-</SelectItem>
-                    <SelectItem value="B+">B+</SelectItem>
-                    <SelectItem value="B-">B-</SelectItem>
-                    <SelectItem value="AB+">AB+</SelectItem>
-                    <SelectItem value="AB-">AB-</SelectItem>
-                    <SelectItem value="O+">O+</SelectItem>
-                    <SelectItem value="O-">O-</SelectItem>
+                    <SelectItem value="A+">A+</SelectItem><SelectItem value="A-">A-</SelectItem>
+                    <SelectItem value="B+">B+</SelectItem><SelectItem value="B-">B-</SelectItem>
+                    <SelectItem value="AB+">AB+</SelectItem><SelectItem value="AB-">AB-</SelectItem>
+                    <SelectItem value="O+">O+</SelectItem><SelectItem value="O-">O-</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="contact">Contact (Email or Phone)</Label>
-                <Input
-                  id="contact"
-                  name="contact"
-                  value={newDonor.contact}
-                  onChange={handleDonorInputChange}
-                  placeholder="Enter email or phone"
-                  required
-                />
+                <Label htmlFor="contact">Contact</Label>
+                <Input id="contact" name="contact" value={newDonor.contact} onChange={handleDonorInputChange} placeholder="Email or phone" required />
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="relationship">Relationship to Patient</Label>
-                <Select
-                  name="relationship"
-                  value={newDonor.relationship}
-                  onValueChange={(value) => setNewDonor((prev) => ({ ...prev, relationship: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select relationship" />
-                  </SelectTrigger>
+                <Label htmlFor="relationship">Relationship</Label>
+                <Select name="relationship" value={newDonor.relationship} onValueChange={(value) => setNewDonor((prev) => ({ ...prev, relationship: value }))}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Family">Family</SelectItem>
                     <SelectItem value="Friend">Friend</SelectItem>
@@ -211,23 +164,12 @@ export default function StaffDonorPage() {
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="healthStatus">Health Status</Label>
-                <Textarea
-                  id="healthStatus"
-                  name="healthStatus"
-                  value={newDonor.healthStatus}
-                  onChange={handleDonorInputChange}
-                  placeholder="Briefly describe your health status"
-                  required
-                />
+                <Textarea id="healthStatus" name="healthStatus" value={newDonor.healthStatus} onChange={handleDonorInputChange} placeholder="Status" required />
               </div>
-
               <div className="flex justify-end gap-4">
-                <Button variant="outline" type="button" onClick={() => setShowDonorForm(false)}>
-                  Cancel
-                </Button>
+                <Button variant="outline" type="button" onClick={() => setShowDonorForm(false)}>Cancel</Button>
                 <Button type="submit">Register</Button>
               </div>
             </form>
@@ -237,78 +179,43 @@ export default function StaffDonorPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Current Potential Donors</CardTitle>
-          <CardDescription>Manage and communicate with potential kidney donors</CardDescription>
+          <CardTitle>Current Donors</CardTitle>
+          <CardDescription>Manage and communicate with donors</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-4">
             {donors.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No potential donors registered yet.</p>
+              <p className="text-sm text-muted-foreground">No donors yet.</p>
             ) : (
               donors.map((donor) => (
                 <div key={donor.id}>
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="font-medium">{donor.name} ({donor.relationship})</p>
-                      <p className="text-sm text-muted-foreground">Blood Type: {donor.bloodType}</p>
+                      <p className="text-sm text-muted-foreground">Blood: {donor.bloodType}</p>
                       <p className="text-sm text-muted-foreground">Contact: {donor.contact}</p>
-                      <p className="text-sm text-muted-foreground">Health Status: {donor.healthStatus}</p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <Badge
-                        variant="outline"
-                        className="bg-amber-50 text-amber-700 border-amber-200"
-                      >
-                        {donor.status}
-                      </Badge>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedDonorId(donor.id)}
-                      >
-                        <MessageSquare className="mr-2 h-4 w-4" />
-                        Message
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">{donor.status}</Badge>
+                      <Button variant="outline" size="sm" onClick={() => setSelectedDonorId(donor.id)}>
+                        <Mail className="mr-2 h-4 w-4" /> Send Email
                       </Button>
                     </div>
                   </div>
                   {selectedDonorId === donor.id && (
                     <div className="mt-4 p-4 bg-white rounded-lg border">
-                      <h4 className="text-sm font-medium mb-2">Conversation with {donor.name}</h4>
-                      <div className="space-y-2 max-h-40 overflow-y-auto mb-4">
-                        {donor.messages.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">No messages yet.</p>
-                        ) : (
-                          donor.messages.map((msg, index) => (
-                            <div
-                              key={index}
-                              className={`flex ${msg.sender === "Staff" ? "justify-end" : "justify-start"
-                                }`}
-                            >
-                              <div
-                                className={`p-2 rounded-lg text-sm ${msg.sender === "Staff"
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted"
-                                  }`}
-                              >
-                                <p>{msg.content}</p>
-                                <p className="text-xs opacity-70">{msg.timestamp}</p>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Input
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          placeholder="Type your message..."
-                        />
-                        <Button
-                          onClick={() => handleMessageSubmit(donor.id)}
-                          disabled={!newMessage.trim()}
-                        >
-                          Send
-                        </Button>
+                      <h4 className="text-sm font-medium mb-2">Email {donor.name}</h4>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} placeholder="Subject" />
+                        </div>
+                        <div className="space-y-2">
+                          <Textarea value={emailBody} onChange={(e) => setEmailBody(e.target.value)} placeholder="Message" rows={4} />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" onClick={() => { setSelectedDonorId(null); setEmailSubject(""); setEmailBody(""); }}>Cancel</Button>
+                          <Button onClick={() => handleSendEmail(donor.id)} disabled={!emailSubject.trim() || !emailBody.trim()}>Send</Button>
+                        </div>
                       </div>
                     </div>
                   )}

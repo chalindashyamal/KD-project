@@ -1,13 +1,14 @@
 import { PrismaClient } from '@/generated/prisma';
 import { z } from "zod";
 import { withAuth } from '@/lib/auth';
+import { request } from 'http';
 
 const prisma = new PrismaClient();
 
 export default withAuth(async function handler(req, res) {
     if (req.method === "POST") {
         try {
-            if (!req.patient) {
+            if (!req.staff) {
                 return res.status(403).json({ error: "Forbidden" });
             }
 
@@ -29,9 +30,6 @@ export default withAuth(async function handler(req, res) {
         }
     } else if (req.method === "GET") {
         try {
-            if (!req.patient) {
-                return res.status(403).json({ error: "Forbidden" });
-            }
 
             const donors = await prisma.donor.findMany();
 

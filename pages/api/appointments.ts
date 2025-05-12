@@ -27,7 +27,7 @@ export default withAuth(async function handler(req, res) {
 
   if (req.method === "POST") {
     try {
-      const patientId = req.query.patientId as string || req.patient!.id
+      const patientId = req.body.patientId as string || req.patient!.id
 
       // Validate the request body
       const data = formSchema.parse({
@@ -49,6 +49,7 @@ export default withAuth(async function handler(req, res) {
 
       return res.status(201).json(appointment)
     } catch (error) {
+      console.log(error)
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors })
       }
