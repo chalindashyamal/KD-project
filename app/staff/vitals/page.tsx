@@ -491,12 +491,7 @@ export default function StaffVitalsPage() {
                 </TableBody>
               </Table>
             </div>
-            <Button variant="outline" className="w-full mt-4" asChild>
-              <Link href="/staff/vitals/history">
-                View Full History
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+            
           </CardContent>
         </Card>
       </div>

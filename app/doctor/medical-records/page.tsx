@@ -305,7 +305,7 @@ export default function DoctorMedicalRecordsPage() {
                   <TableHead>Date</TableHead>
                   <TableHead>Provider</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -329,15 +329,7 @@ export default function DoctorMedicalRecordsPage() {
                       <TableCell>{record.provider}</TableCell>
                       <TableCell className="max-w-xs truncate">{record.description}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm">
-                            View
-                          </Button>
-                          <Button variant="outline" size="sm" className="gap-1">
-                            <Download className="h-3 w-3" />
-                            PDF
-                          </Button>
-                        </div>
+                        
                       </TableCell>
                     </TableRow>
                   ))

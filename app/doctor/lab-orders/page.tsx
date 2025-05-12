@@ -195,7 +195,7 @@ export default function DoctorLabOrdersPage() {
                     value={newLabOrder.patientName}
                     onChange={handleInputChange}
                     placeholder="Enter patient name"
-                    required
+                    
                   />
                 </div>
                 <div className="space-y-2">
@@ -359,7 +359,7 @@ export default function DoctorLabOrdersPage() {
                   <TableHead>Due Date</TableHead>
                   <TableHead>Priority</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+               
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -386,16 +386,7 @@ export default function DoctorLabOrdersPage() {
                         <Badge variant={getStatusBadgeVariant(order.status)}>{order.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm">
-                            View
-                          </Button>
-                          {order.status === "Completed" && (
-                            <Button variant="outline" size="sm">
-                              Results
-                            </Button>
-                          )}
-                        </div>
+                 
                       </TableCell>
                     </TableRow>
                   ))

@@ -166,7 +166,7 @@ export default function DoctorAppointmentsPage() {
                     value={newAppointment.patientName}
                     onChange={handleInputChange}
                     placeholder="Enter patient name"
-                    required
+                    
                   />
                 </div>
                 <div className="space-y-2">
@@ -339,7 +339,7 @@ export default function DoctorAppointmentsPage() {
                     <TableHead>Time</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  
                   </TableRow>
                 </TableHeader>
                 <TableBody>

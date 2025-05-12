@@ -189,13 +189,7 @@ export default function DoctorMessagesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
           <p className="text-muted-foreground">Communicate with patients and staff</p>
         </div>
-        <Button className="gap-2" asChild>
-          <Link href="/doctor/messages/new">
-            <Plus className="h-4 w-4" />
-            New Message
-          </Link>
-        </Button>
-      </div>
+          </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-1">

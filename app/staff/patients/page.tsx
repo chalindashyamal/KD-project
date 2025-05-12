@@ -174,7 +174,7 @@ export default function StaffPatientsPage() {
                     value={newCheckIn.patientName}
                     onChange={handleInputChange}
                     placeholder="Enter patient name"
-                    required
+                    
                   />
                 </div>
                 <div className="space-y-2">
