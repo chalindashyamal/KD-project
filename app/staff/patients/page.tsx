@@ -277,8 +277,7 @@ export default function StaffPatientsPage() {
                   <SelectContent>
                     <SelectItem value="name">Name</SelectItem>
                     <SelectItem value="id">Patient ID</SelectItem>
-                    <SelectItem value="lastVisit">Last Visit</SelectItem>
-                    <SelectItem value="nextAppointment">Next Appointment</SelectItem>
+                  
                   </SelectContent>
                 </Select>
               </div>
@@ -294,9 +293,8 @@ export default function StaffPatientsPage() {
                   <TableHead>Age/Gender</TableHead>
                   <TableHead>Diagnosis</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Last Visit</TableHead>
-                  <TableHead>Next Appointment</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+            
+                  
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -318,7 +316,7 @@ export default function StaffPatientsPage() {
                       </TableCell>
                       <TableCell>{patient.lastVisit}</TableCell>
                       <TableCell>{patient.nextAppointment}</TableCell>
-                      <TableCell className="text-right">
+                      {/* <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
@@ -345,7 +343,7 @@ export default function StaffPatientsPage() {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TableCell>
+                      </TableCell> */}
                     </TableRow>
                   ))
                 )}

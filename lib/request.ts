@@ -5,7 +5,7 @@ export default async function request(input: string, init?: RequestInit): Promis
 
   // Check for 401 or 403 status
   if ((res.status === 401 || res.status === 403) && typeof window !== "undefined") {
-    // window.location.href = "/login"; // Redirect to login page
+    window.location.href = "/login"; // Redirect to login page
   }
 
   return res;

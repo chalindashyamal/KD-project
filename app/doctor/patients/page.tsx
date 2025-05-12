@@ -206,9 +206,8 @@ export default function DoctorPatientsPage() {
                   <TableHead>Age/Gender</TableHead>
                   <TableHead>Diagnosis</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Last Visit</TableHead>
-                  <TableHead>Next Appointment</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  
+                  
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -230,7 +229,7 @@ export default function DoctorPatientsPage() {
                       </TableCell>
                       <TableCell>{patient.lastVisit}</TableCell>
                       <TableCell>{patient.nextAppointment}</TableCell>
-                      <TableCell className="text-right">
+                      {/* <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
@@ -279,7 +278,7 @@ export default function DoctorPatientsPage() {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TableCell>
+                      </TableCell> */}
                     </TableRow>
                   ))
                 )}
