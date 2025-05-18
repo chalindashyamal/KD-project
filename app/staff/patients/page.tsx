@@ -8,13 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Search, Filter, MoreHorizontal, FileText, Calendar, Activity, Eye, UserCog } from "lucide-react"
+import { Search, Filter, MoreHorizontal, FileText, Calendar, Activity, Eye, UserCog, Plus } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import request from "@/lib/request"
+import Link from "next/link"
 
 type Patient = {
   id: string;
@@ -51,7 +52,6 @@ export default function StaffPatientsPage() {
           ...patient,
           name: `${patient.firstName} ${patient.lastName}`,
           age: new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear(),
-          status: "Stable",
           diagnosis: patient.primaryDiagnosis,
         })));
       } catch (err: any) {
@@ -114,8 +114,26 @@ export default function StaffPatientsPage() {
     setNewCheckIn((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit =async (e: React.FormEvent) => {
     e.preventDefault()
+
+    try {
+      const response = await request(`/api/patient/${newCheckIn.patientId}`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error(errorData)
+        alert(errorData)
+        return
+      }
+
+    } catch (error) {
+      console.error("An error occurred:", error)
+      alert("An unexpected error occurred. Please try again.")
+    }
+
     // Update the patient's status and last visit date
     setPatients((prevPatients) =>
       prevPatients.map((patient) =>
@@ -123,7 +141,6 @@ export default function StaffPatientsPage() {
           ? {
             ...patient,
             status: "Active",
-            lastVisit: format(newCheckIn.checkInDate, "MMM d, yyyy"),
           }
           : patient
       )
@@ -153,6 +170,12 @@ export default function StaffPatientsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Patient Management</h1>
           <p className="text-muted-foreground">View and manage patient information</p>
         </div>
+        <Button className="gap-2" asChild>
+          <Link href="/staff/patients/add">
+            <Plus className="h-4 w-4" />
+            Add New Patient
+          </Link>
+        </Button>
         <Dialog open={showCheckInForm} onOpenChange={setShowCheckInForm}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -200,31 +223,6 @@ export default function StaffPatientsPage() {
                   placeholder="Enter reason for visit"
                   required
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Check-in Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {newCheckIn.checkInDate ? format(newCheckIn.checkInDate, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <CalendarComponent
-                      mode="single"
-                      selected={newCheckIn.checkInDate}
-                      onSelect={(selectedDate) =>
-                        setNewCheckIn((prev) => ({ ...prev, checkInDate: selectedDate || new Date() }))
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
               </div>
 
               <div className="flex justify-end gap-4">

@@ -1,6 +1,7 @@
 import { PrismaClient } from '@/generated/prisma';
 import { z } from "zod"
 import { withAuth } from '@/lib/auth';
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient()
 
@@ -20,6 +21,14 @@ export default withAuth(async function handler(req, res) {
                 }
             }
 
+            const { name, username, password, role } = {
+                name:data.firstName+' '+data.lastName,
+                username:data.email,
+                password:data.password,
+                role:'patient',
+            };
+            delete data.password;
+  
             const newPatient = await prisma.patient.create({
                 data: {
                     ...data,
@@ -28,6 +37,22 @@ export default withAuth(async function handler(req, res) {
                     diagnosisDate: new Date(data.diagnosisDate),
                     allergies: { create: data.allergies },
                 },
+            });
+
+            // Check if user already exists
+            const existingUser = await prisma.user.findUnique({
+              where: { username },
+            });
+            if (existingUser) {
+              return res.status(400).json({ error: "Username already exists" });
+            }
+        
+            // Hash password
+            const hashedPassword = await bcrypt.hash(password, 10);
+        
+            // Create user
+            const newUser = await prisma.user.create({
+              data: { name, username, password: hashedPassword, role, patientId: newId },
             });
 
             res.status(201).json(newPatient)

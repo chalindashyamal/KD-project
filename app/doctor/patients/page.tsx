@@ -141,12 +141,7 @@ export default function DoctorPatientsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Patient Management</h1>
           <p className="text-muted-foreground">View and manage your patients</p>
         </div>
-        <Button className="gap-2" asChild>
-          <Link href="/doctor/patients/add">
-            <Plus className="h-4 w-4" />
-            Add New Patient
-          </Link>
-        </Button>
+       
       </div>
 
       <Card>

@@ -110,7 +110,7 @@ export default function DoctorDashboard() {
             </div>
           </CardHeader>
           <CardContent className="p-6">
-            <DoctorAppointments />
+            <DoctorAppointments/>
           </CardContent>
         </Card>
 

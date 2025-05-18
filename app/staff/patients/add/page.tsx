@@ -21,6 +21,7 @@ const patientFormSchema = z.object({
   gender: z.string().min(1, { message: "Gender is required" }),
   bloodType: z.string().optional(),
   address: z.string().min(1, { message: "Address is required" }),
+  password: z.string(),
   phone: z.string().min(1, { message: "Phone number is required" }),
   email: z.string().email({ message: "Invalid email address" }).optional(),
   emergencyContactName: z.string().min(1, { message: "Emergency contact name is required" }),
@@ -31,6 +32,7 @@ const patientFormSchema = z.object({
   insuranceGroupNumber: z.string().optional(),
   primaryDiagnosis: z.string().min(1, { message: "Primary diagnosis is required" }),
   diagnosisDate: z.string().min(1, { message: "Diagnosis date is required" }),
+
   allergies: z
     .array(
       z.object({
@@ -76,7 +78,7 @@ export default function AddPatientPage() {
       }
 
       alert("Patient added successfully!")
-      router.push("/doctor/patients")
+      router.push("/staff/patients")
     } catch (error) {
       console.error("An error occurred:", error)
       alert("An unexpected error occurred. Please try again.")
@@ -102,7 +104,7 @@ export default function AddPatientPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Button variant="outline" size="icon" asChild>
-          <Link href="/doctor/patients">
+          <Link href="/staff/patients">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
@@ -166,6 +168,7 @@ export default function AddPatientPage() {
                     )}
                   />
                 </div>
+
 
                 <div className="grid gap-4 md:grid-cols-3">
                   <FormField
@@ -257,6 +260,20 @@ export default function AddPatientPage() {
                         <FormLabel>Address</FormLabel>
                         <FormControl>
                           <Input placeholder="123 Main St, Anytown, CA 12345" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                   <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>password</FormLabel>
+                        <FormControl>
+                          <Input placeholder="123" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -495,7 +512,7 @@ export default function AddPatientPage() {
 
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" asChild>
-                  <Link href="/doctor/patients">Cancel</Link>
+                  <Link href="/staff/patients">Cancel</Link>
                 </Button>
                 <Button type="submit" className="gap-2">
                   <Save className="h-4 w-4" />

@@ -33,6 +33,7 @@ export default function DoctorAppointmentsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [showScheduleForm, setShowScheduleForm] = useState(false)
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [appointmentsVersion,setAppointmentsVersion] = useState(1)
 
   const [newAppointment, setNewAppointment] = useState({
     patientName: "",
@@ -61,7 +62,7 @@ export default function DoctorAppointmentsPage() {
     }
 
     fetchAppointments()
-  }, [])
+  }, [appointmentsVersion])
 
   // Filter appointments based on selected date, search query, and status filter
   const filteredAppointments = appointments.filter((appointment) => {
@@ -122,7 +123,7 @@ export default function DoctorAppointmentsPage() {
       }
 
       const createdAppointment = await response.json()
-      setAppointments((prev) => [...prev, createdAppointment]) // Add the new appointment to the list
+      //setAppointments((prev) => [...prev, createdAppointment]) // Add the new appointment to the list
       setNewAppointment({
         patientName: "",
         patientId: "",
@@ -133,6 +134,7 @@ export default function DoctorAppointmentsPage() {
         location: "",
       })
       setShowScheduleForm(false)
+      setAppointmentsVersion(appointmentsVersion+1)
     } catch (error) {
       console.error("Error creating appointment:", error)
     }

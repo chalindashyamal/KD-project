@@ -7,6 +7,7 @@ import { Clock, MapPin, CheckCircle, UserCog } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import request from "@/lib/request"
+import { format } from "date-fns"
 
 interface Appointment {
   id: string
@@ -27,7 +28,7 @@ export function StaffAppointmentList() {
   useEffect(() => {
     async function fetchAppointments() {
       try {
-        const response = await request("/api/appointments")
+        const response = await request(`/api/appointments?date=${format(new Date(), "yyyy-MM-dd")}`)
         const data = await response.json()
         setAppointments(data.map((appointment: any) => ({
           ...appointment,
