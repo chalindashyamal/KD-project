@@ -102,7 +102,6 @@ export default function StaffVitalsPage() {
           ...patient,
           name: `${patient.firstName} ${patient.lastName}`,
           age: new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear(),
-          status: "Stable",
           diagnosis: patient.primaryDiagnosis,
         })));
       } catch (error) {

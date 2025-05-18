@@ -22,6 +22,21 @@ export default withAuth(async function handler(req, res) {
             console.error("Error fetching patient data:", error)
             res.status(500).json({ error: "Internal Server Error" })
         }
+    } else if (req.method === "POST") {
+        try {
+            // Fetch patient data by ID
+            await prisma.patient.update({
+                where: { id: id as string },
+                data:{
+                    activeTime:new Date().toDateString(),
+                }
+            })
+
+            res.status(200).json({status:"ok"})
+        } catch (error) {
+            console.error("Error fetching patient data:", error)
+            res.status(500).json({ error: "Internal Server Error" })
+        }
     } else if (req.method === "DELETE") {
         try {
             // Delete the patient by ID

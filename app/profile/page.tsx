@@ -23,18 +23,7 @@ export default function ProfilePage() {
             <User className="mr-2 h-4 w-4" />
             Personal Info
           </TabsTrigger>
-          <TabsTrigger value="medical">
-            <FileText className="mr-2 h-4 w-4" />
-            Medical History
-          </TabsTrigger>
-          <TabsTrigger value="lab">
-            <Activity className="mr-2 h-4 w-4" />
-            Lab Results
-          </TabsTrigger>
-          <TabsTrigger value="prescriptions">
-            <Pill className="mr-2 h-4 w-4" />
-            Prescriptions
-          </TabsTrigger>
+          
         </TabsList>
 
         <TabsContent value="personal" className="mt-6">

@@ -153,17 +153,6 @@ export default function FluidTracker() {
             <Button variant="outline" onClick={resetTracker}>
               Reset Tracker
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                const newLimit = prompt("Enter new daily fluid limit (in ml):", fluidLimit.toString())
-                if (newLimit && !isNaN(Number.parseInt(newLimit))) {
-                  //setFluidLimit(Number.parseInt(newLimit))
-                }
-              }}
-            >
-              Update Limit
-            </Button>
           </div>
         </CardContent>
       </Card>

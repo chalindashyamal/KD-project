@@ -11,6 +11,9 @@ export default withAuth(async function handler(req, res) {
                     allergies: true, // Include related allergies if needed
                 },
             });
+            patients.forEach((p: any)=>{
+                p.status = p.activeTime==new Date().toDateString()?"Active":"Stable"
+            })
 
             res.status(200).json(patients);
         } catch (error: any) {

@@ -45,6 +45,7 @@ model Patient {
   diagnosisDate            DateTime
   allergies                Allergy[]
   notes                    String? // Optional
+  activeTime               String?
   Prescription             Prescription[]
   LabTest                  LabTest[]
   PatientRecord            MedicalRecord[]
