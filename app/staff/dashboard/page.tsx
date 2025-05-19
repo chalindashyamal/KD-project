@@ -76,21 +76,7 @@ export default function StaffDashboard() {
           <p className="text-sm opacity-90">{stats.pendingVitalsHighPriority} high priority</p>
         </Card>
 
-        <Card className="stat-card gradient-card text-white">
-          <div className="card-gradient-overlay" />
-          <Pill className="stat-card-icon h-24 w-24" />
-          <h3 className="text-sm font-medium mb-1">Medication Tasks</h3>
-          <div className="text-3xl font-bold mb-1">{stats.medicationTasksTotal}</div>
-          <p className="text-sm opacity-90">{stats.medicationTasksDueSoon} due in next hour</p>
-        </Card>
-
-        <Card className="stat-card gradient-card text-white">
-          <div className="card-gradient-overlay" />
-          <Bell className="stat-card-icon h-24 w-24" />
-          <h3 className="text-sm font-medium mb-1">Alerts</h3>
-          <div className="text-3xl font-bold mb-1">5</div>
-          <p className="text-sm opacity-90">1 critical</p>
-        </Card>
+        
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

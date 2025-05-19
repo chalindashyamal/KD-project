@@ -41,11 +41,7 @@ const routes = [
     icon: ClipboardList,
     href: "/staff/tasks",
   },
-  {
-    label: "Inventory",
-    icon: Package,
-    href: "/staff/inventory",
-  },
+
   {
     label: "Donors",
     icon: Heart,

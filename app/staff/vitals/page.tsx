@@ -63,6 +63,7 @@ export default function StaffVitalsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null)
   const [vitalsHistory, setVitalsHistory] = useState<Vitals[]>([])
+  const [vitalsHistoryVersion, setVitalsHistoryVersion] = useState(1)
   const [patients, setPatients] = useState<Patient[]>([]);
 
   // Load initial vitals history when a patient is selected
@@ -87,7 +88,7 @@ export default function StaffVitalsPage() {
     }
 
     fetchVitalsHistory()
-  }, [selectedPatient])
+  }, [selectedPatient,vitalsHistoryVersion])
 
   // Fetch patients from the API
   useEffect(() => {
@@ -150,7 +151,8 @@ export default function StaffVitalsPage() {
 
       // Reset form and reload vitals history
       form.reset()
-      setVitalsHistory((prev) => [...prev, savedVitals]) // Add new vitals to history
+      //setVitalsHistory((prev) => [...prev, savedVitals]) // Add new vitals to history
+      setVitalsHistoryVersion(vitalsHistoryVersion+1)
     } catch (error) {
       console.error("Error saving vitals:", error)
       alert("Failed to record vitals. Please try again.")

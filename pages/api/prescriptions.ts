@@ -15,6 +15,8 @@ export default withAuth(async function handler(req, res) {
         prescribedDate,
         expiryDate,
         refills,
+        time,
+        instructions,
       } = req.body;
 
       // Create a new prescription in the database
@@ -32,6 +34,19 @@ export default withAuth(async function handler(req, res) {
         include: {
           patient: true,
         },
+      });
+
+      
+      // Create a new medication in the database
+      const newMedication = await prisma.medication.create({
+          data: {
+              patientId,
+              name: medication,
+              dosage,
+              frequency,
+              times: time.join(","), // Store times as a comma-separated string
+              instructions,
+          },
       });
 
       res.status(201).json(newPrescription);

@@ -57,6 +57,7 @@ model Patient {
   Appointment              Appointment[]
   DialysisSessions         DialysisSessions[]
   Task                     Tasks[]
+  DietPlan                 DietPlan[]
 }
 
 model Appointment {
@@ -217,4 +218,14 @@ model Message {
   recipient   User     @relation(name: "recipient", fields: [recipientId], references: [id])
   content     String
   timestamp   DateTime @default(now())
+}
+
+model DietPlan {
+  id        String   @id @default(cuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  weekday   String // Store weekday plan as serialized JSON string
+  weekend   String // Store weekend plan as serialized JSON string
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

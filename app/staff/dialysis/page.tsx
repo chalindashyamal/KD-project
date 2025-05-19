@@ -133,8 +133,8 @@ export default function StaffDialysisPage() {
           patientName: newSession.patientName,
           room: newSession.room,
           machine: newSession.machine,
-          scheduledStart: newSession.scheduledStart,
-          scheduledEnd: newSession.scheduledEnd,
+          scheduledStart: new Date().toDateString()+" "+newSession.scheduledStart,
+          scheduledEnd: new Date().toDateString()+" "+newSession.scheduledEnd,
           status: "Scheduled",
           startedAt: "-",
           duration: newSession.duration,
@@ -328,7 +328,7 @@ export default function StaffDialysisPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {staff?.map((nurse) => (
-                      <SelectItem key={nurse.id} value={nurse.id}>
+                      <SelectItem key={nurse.id} value={nurse.name}>
                         {nurse.name}
                       </SelectItem>
                     ))}

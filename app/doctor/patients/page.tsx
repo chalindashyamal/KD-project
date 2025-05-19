@@ -201,6 +201,7 @@ export default function DoctorPatientsPage() {
                   <TableHead>Age/Gender</TableHead>
                   <TableHead>Diagnosis</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead></TableHead>
                   
                   
                 </TableRow>
@@ -224,6 +225,14 @@ export default function DoctorPatientsPage() {
                       </TableCell>
                       <TableCell>{patient.lastVisit}</TableCell>
                       <TableCell>{patient.nextAppointment}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon">
+                          <Link href={`/doctor/diet?patientId=${patient.id}`}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Diet
+                              </Link>
+                            </Button>
+                      </TableCell>
                       {/* <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

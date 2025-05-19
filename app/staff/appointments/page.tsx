@@ -375,11 +375,7 @@ export default function DoctorAppointmentsPage() {
                         <TableCell>
                           <Badge variant={getStatusBadgeVariant(appointment.status)}>{appointment.status}</Badge>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="outline" size="sm">
-                            View
-                          </Button>
-                        </TableCell>
+                        
                       </TableRow>
                     ))
                   )}

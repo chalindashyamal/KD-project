@@ -78,7 +78,7 @@ export default function StaffMedicationsPage() {
           medication: med.name,
           dosage: med.dosage,
           administeredBy: med.status[0].AdministeredBy || "",
-          administeredAt: format(new Date(med.status[0].time), "MMM d, yyyy, h:mm a"),
+          administeredAt: med.status[0].time,
           status: med.status[0].taken ? "Administered" : "Pending",
           notes: med.instructions,
         })))
@@ -328,149 +328,62 @@ export default function StaffMedicationsPage() {
         </Dialog>
       </div>
 
-      <Tabs defaultValue="upcoming" className="w-full" onValueChange={setActiveTab}>
-        <TabsList className="grid w-full md:w-auto grid-cols-2">
-          <TabsTrigger value="upcoming">Upcoming Doses</TabsTrigger>
-          <TabsTrigger value="history">Administration History</TabsTrigger>
-        </TabsList>
-        <TabsContent value="upcoming" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Upcoming Medication Doses</CardTitle>
-              <CardDescription>View and administer scheduled medications</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Patient</TableHead>
-                      <TableHead>Medication</TableHead>
-                      <TableHead>Dosage</TableHead>
-                      <TableHead>Next Due</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
+      <Card>
+        <CardHeader>
+          <CardTitle>All Prescriptions</CardTitle>
+          <CardDescription>View and manage all patient prescriptions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by patient name, ID, or medication..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Patient</TableHead>
+                  <TableHead>Medication</TableHead>
+                  <TableHead>Dosage & Frequency</TableHead>
+                 
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredMedications.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      No prescriptions found for the selected criteria
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredMedications.map((prescription) => (
+                    <TableRow key={prescription.id}>
+                      <TableCell>
+                        <div className="font-medium">{prescription.patientName}</div>
+                        <div className="text-xs text-muted-foreground">{prescription.patientId}</div>
+                      </TableCell>
+                      <TableCell>{prescription.name}</TableCell>
+                      <TableCell>
+                        <div>{prescription.dosage}</div>
+                        <div className="text-xs text-muted-foreground">{prescription.instructions}</div>
+                      </TableCell>
+                      
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredMedications.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
-                          No medications found
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredMedications.map((med) => (
-                        <TableRow key={med.id}>
-                          <TableCell>
-                            <div className="font-medium">{med.patientName}</div>
-                            <div className="text-xs text-muted-foreground">{med.patientId}</div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-medium">{med.name}</div>
-                            <div className="text-xs text-muted-foreground"></div>
-                          </TableCell>
-                          <TableCell>
-                            <div>{med.dosage}</div>
-                            <div className="text-xs text-muted-foreground">{med.instructions}</div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Clock className="mr-1 h-3 w-3 text-muted-foreground" />
-                              <span>{med.status[0].time}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="default">Active</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button variant="outline" size="sm">
-                                Details
-                              </Button>
-                              <Button size="sm">
-                                Administer
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="history" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Medication Administration History</CardTitle>
-              <CardDescription>View previously administered medications</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Patient</TableHead>
-                      <TableHead>Medication</TableHead>
-                      <TableHead>Administered By</TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredHistory.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
-                          No administration history found
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredHistory.map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell>
-                            <div className="font-medium">{record.patientName}</div>
-                            <div className="text-xs text-muted-foreground">{record.patientId}</div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-medium">{record.medication}</div>
-                            <div className="text-xs text-muted-foreground">{record.dosage}</div>
-                          </TableCell>
-                          <TableCell>{record.administeredBy}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Calendar className="mr-1 h-3 w-3 text-muted-foreground" />
-                              <span>{record.administeredAt}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3 text-green-500" />
-                              {record.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="sm">
-                              View Details
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-              <Button variant="outline" className="w-full mt-4">
-                View Full History
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
