@@ -81,7 +81,46 @@ export default withAuth(async function handler(req, res) {
             console.error("Error fetching patient data:", error)
             res.status(500).json({ error: "Internal Server Error" })
         }
+    } else if (req.method === "PUT") {
+        try {
+            const data = req.body;
+            const { id, firstName, lastName, address, phone, email, emergencyContactName, emergencyContactRelation, emergencyContactPhone } = data;
+
+            if (!id) {
+                return res.status(400).json({ error: "Patient ID is required" });
+            }
+
+            // Update patient data
+            const updatedPatient = await prisma.patient.update({
+                where: { id },
+                data: {
+                    firstName,
+                    lastName,
+                    address,
+                    phone,
+                    email,
+                    emergencyContactName,
+                    emergencyContactRelation,
+                    emergencyContactPhone,
+                },
+            });
+
+            // Update user data (name and username)
+            await prisma.user.update({
+                where: { patientId: id },
+                data: {
+                    name: `${firstName} ${lastName}`,
+                    username: email || undefined,
+                },
+            });
+
+            res.status(200).json(updatedPatient);
+        } catch (error: any) {
+            console.error("Error updating patient:", error.message);
+            res.status(500).json({ error: "Failed to update patient data." });
+        }
     } else {
         res.status(405).json({ error: "Method Not Allowed" })
     }
 })
+

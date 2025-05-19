@@ -187,7 +187,7 @@ export default function DoctorLabOrdersPage() {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label htmlFor="patientName">Patient Name</Label>
                   <Input
                     id="patientName"
@@ -197,7 +197,7 @@ export default function DoctorLabOrdersPage() {
                     placeholder="Enter patient name"
                     
                   />
-                </div>
+                </div> */}
                 <div className="space-y-2">
                   <Label htmlFor="patientId">Patient ID</Label>
                   <Input

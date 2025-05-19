@@ -101,6 +101,8 @@ export default function DoctorDashboard() {
           </CardContent>
         </Card>
 
+        
+
         <Card className="overflow-hidden border-none shadow-md">
           
           <Card className="overflow-hidden border-none shadow-md">
@@ -116,7 +118,9 @@ export default function DoctorDashboard() {
             <StaffTaskList />
           </CardContent>
         </Card>
+        
         </Card>
+        
       </div>
 
       

@@ -43,6 +43,7 @@ const formSchema = z.object({
 export default function AppointmentsPage() {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [open, setOpen] = useState(false)
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,14 +71,19 @@ export default function AppointmentsPage() {
       if (!response.ok) {
         const errorData = await response.json()
         console.error("Error saving appointment:", errorData)
+        setMessage({ type: "error", text: "Failed to schedule appointment. Please try again." })
         return
       }
 
-      console.log("Appointment saved successfully!")
-      setOpen(false)
-      form.reset()
+      setMessage({ type: "success", text: "Appointment scheduled successfully!" })
+      setTimeout(() => {
+        setOpen(false)
+        setMessage(null)
+        form.reset()
+      }, 2000) // Close dialog and reset after 2 seconds
     } catch (error) {
       console.error("An error occurred:", error)
+      setMessage({ type: "error", text: "An unexpected error occurred. Please try again." })
     }
   }
 
@@ -85,7 +91,10 @@ export default function AppointmentsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Appointments</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(isOpen) => {
+          setOpen(isOpen)
+          if (!isOpen) setMessage(null) // Clear message when dialog closes
+        }}>
           <DialogTrigger asChild>
             <Button>
               <CalendarPlus className="mr-2 h-4 w-4" />
@@ -97,6 +106,11 @@ export default function AppointmentsPage() {
               <DialogTitle>Schedule New Appointment</DialogTitle>
               <DialogDescription>Book a new appointment for dialysis or consultation.</DialogDescription>
             </DialogHeader>
+            {message && (
+              <div className={`p-4 rounded-md ${message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                {message.text}
+              </div>
+            )}
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
                 <FormField
@@ -241,4 +255,3 @@ export default function AppointmentsPage() {
     </div>
   )
 }
-

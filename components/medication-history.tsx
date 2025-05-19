@@ -77,7 +77,7 @@ export default function MedicationHistory() {
         <CardContent>
           <Calendar mode="single" selected={date} onSelect={setDate} className="border rounded-md" />
           <div className="mt-4 text-center">
-            <Select value={view} onValueChange={setView}>
+            {/* <Select value={view} onValueChange={setView}>
               <SelectTrigger className="w-[180px] mx-auto">
                 <SelectValue placeholder="Select view" />
               </SelectTrigger>
@@ -86,7 +86,7 @@ export default function MedicationHistory() {
                 <SelectItem value="week">Weekly Summary</SelectItem>
                 <SelectItem value="month">Monthly Report</SelectItem>
               </SelectContent>
-            </Select>
+            </Select> */}
           </div>
         </CardContent>
       </Card>

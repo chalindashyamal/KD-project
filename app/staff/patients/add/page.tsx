@@ -12,8 +12,9 @@ import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import request from "@/lib/request"
+import { useState } from "react"
 
-// Form schema
+// Form schema with enhanced password validation
 const patientFormSchema = z.object({
   firstName: z.string().min(1, { message: "First name is required" }),
   lastName: z.string().min(1, { message: "Last name is required" }),
@@ -21,18 +22,17 @@ const patientFormSchema = z.object({
   gender: z.string().min(1, { message: "Gender is required" }),
   bloodType: z.string().optional(),
   address: z.string().min(1, { message: "Address is required" }),
-  password: z.string(),
-  phone: z.string().min(1, { message: "Phone number is required" }),
-  email: z.string().email({ message: "Invalid email address" }).optional(),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  phone: z.string().regex(/^\(\d{3}\)\s\d{3}-\d{4}$/, { message: "Phone must be in format (123) 456-7890" }),
+  email: z.string().email({ message: "Invalid email address" }).optional().or(z.literal("")),
   emergencyContactName: z.string().min(1, { message: "Emergency contact name is required" }),
   emergencyContactRelation: z.string().min(1, { message: "Relationship is required" }),
-  emergencyContactPhone: z.string().min(1, { message: "Emergency contact phone is required" }),
+  emergencyContactPhone: z.string().regex(/^\(\d{3}\)\s\d{3}-\d{4}$/, { message: "Phone must be in format (123) 456-7890" }),
   insuranceProvider: z.string().min(1, { message: "Insurance provider is required" }),
   insurancePolicyNumber: z.string().min(1, { message: "Policy number is required" }),
   insuranceGroupNumber: z.string().optional(),
   primaryDiagnosis: z.string().min(1, { message: "Primary diagnosis is required" }),
   diagnosisDate: z.string().min(1, { message: "Diagnosis date is required" }),
-
   allergies: z
     .array(
       z.object({
@@ -50,6 +50,7 @@ type PatientFormValues = z.input<typeof patientFormSchema>
 
 export default function AddPatientPage() {
   const router = useRouter()
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   // Initialize form
   const form = useForm<PatientFormValues>({
@@ -73,15 +74,18 @@ export default function AddPatientPage() {
       if (!response.ok) {
         const errorData = await response.json()
         console.error("Error saving patient:", errorData)
-        alert("Failed to add patient. Please try again.")
+        form.setError("root", { message: "Failed to add patient. Please try again." })
         return
       }
 
-      alert("Patient added successfully!")
-      router.push("/staff/patients")
+      setSuccessMessage("Patient registered successfully!")
+      form.reset()
+      setTimeout(() => {
+        router.push("/staff/patients")
+      }, 2000) // Redirect after 2 seconds
     } catch (error) {
       console.error("An error occurred:", error)
-      alert("An unexpected error occurred. Please try again.")
+      form.setError("root", { message: "An unexpected error occurred. Please try again." })
     }
   }
 
@@ -120,6 +124,16 @@ export default function AddPatientPage() {
           <CardDescription>Enter the patient's personal and medical information</CardDescription>
         </CardHeader>
         <CardContent>
+          {successMessage && (
+            <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-md">
+              {successMessage}
+            </div>
+          )}
+          {form.formState.errors.root && (
+            <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md">
+              {form.formState.errors.root.message}
+            </div>
+          )}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <div className="space-y-4">
@@ -168,7 +182,6 @@ export default function AddPatientPage() {
                     )}
                   />
                 </div>
-
 
                 <div className="grid gap-4 md:grid-cols-3">
                   <FormField
@@ -266,14 +279,14 @@ export default function AddPatientPage() {
                     )}
                   />
 
-                   <FormField
+                  <FormField
                     control={form.control}
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>password</FormLabel>
+                        <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input placeholder="123" {...field} />
+                          <Input type="password" placeholder="********" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -526,4 +539,3 @@ export default function AddPatientPage() {
     </div>
   )
 }
-

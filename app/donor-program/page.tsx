@@ -28,6 +28,7 @@ export default function DonorProgramPage() {
   const [selectedDonorId, setSelectedDonorId] = useState<number | null>(null)
   const [emailSubject, setEmailSubject] = useState("")
   const [emailBody, setEmailBody] = useState("")
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
   useEffect(() => {
     async function fetchDonors() {
@@ -50,12 +51,14 @@ export default function DonorProgramPage() {
   const handleSendEmail = async (donorId: number) => {
     if (!emailSubject.trim() || !emailBody.trim()) {
       toast({ title: "Error", description: "Please provide both a subject and message.", variant: "destructive" });
+      setMessage({ type: "error", text: "Please provide both a subject and message." });
       return;
     }
 
     const donor = donors.find(d => d.id === donorId);
     if (!donor || !validateEmail(donor.contact)) {
       toast({ title: "Error", description: "Invalid donor or email.", variant: "destructive" });
+      setMessage({ type: "error", text: "Invalid donor or email." });
       return;
     }
 
@@ -69,10 +72,17 @@ export default function DonorProgramPage() {
       if (!response.ok) throw new Error('Failed to send email');
 
       toast({ title: "Success", description: `Email sent to ${donor.name}.` });
-      setEmailSubject(""); setEmailBody(""); setSelectedDonorId(null);
+      setMessage({ type: "success", text: `Email sent successfully to ${donor.name}.` });
+      setTimeout(() => {
+        setEmailSubject("");
+        setEmailBody("");
+        setSelectedDonorId(null);
+        setMessage(null);
+      }, 2000); // Reset form and clear message after 2 seconds
     } catch (error) {
       console.error('Email error:', error.message);
       toast({ title: "Error", description: `Failed to send email: ${error.message}`, variant: "destructive" });
+      setMessage({ type: "error", text: `Failed to send email: ${error.message}` });
     }
   }
 
@@ -158,6 +168,11 @@ export default function DonorProgramPage() {
                         </div>
                         {selectedDonorId === donor.id && (
                           <div className="mt-4 p-4 bg-white rounded-lg border">
+                            {message && (
+                              <div className={`p-4 rounded-md mb-4 ${message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                                {message.text}
+                              </div>
+                            )}
                             <h4 className="text-sm font-medium mb-2">Email {donor.name}</h4>
                             <div className="space-y-4">
                               <div className="space-y-2">
@@ -167,8 +182,23 @@ export default function DonorProgramPage() {
                                 <Textarea value={emailBody} onChange={(e) => setEmailBody(e.target.value)} placeholder="Message" rows={4} />
                               </div>
                               <div className="flex gap-2">
-                                <Button variant="outline" onClick={() => { setSelectedDonorId(null); setEmailSubject(""); setEmailBody(""); }}>Cancel</Button>
-                                <Button onClick={() => handleSendEmail(donor.id)} disabled={!emailSubject.trim() || !emailBody.trim()}>Send</Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedDonorId(null);
+                                    setEmailSubject("");
+                                    setEmailBody("");
+                                    setMessage(null);
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  onClick={() => handleSendEmail(donor.id)}
+                                  disabled={!emailSubject.trim() || !emailBody.trim()}
+                                >
+                                  Send
+                                </Button>
                               </div>
                             </div>
                           </div>

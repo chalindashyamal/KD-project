@@ -115,11 +115,7 @@ export default function LoginPage() {
                     Login as Patient
                   </Button>
                 </form>
-                <div className="mt-4 text-sm text-muted-foreground">
-                  <p>Sample patient login:</p>
-                  <p>Username: patient</p>
-                  <p>Password: 12345</p>
-                </div>
+               
               </TabsContent>
 
               <TabsContent value="doctor">
@@ -155,11 +151,7 @@ export default function LoginPage() {
                     Login as Doctor
                   </Button>
                 </form>
-                <div className="mt-4 text-sm text-muted-foreground">
-                  <p>Sample doctor login:</p>
-                  <p>Username: doctor</p>
-                  <p>Password: 12345</p>
-                </div>
+                
               </TabsContent>
 
               <TabsContent value="staff">
@@ -195,20 +187,12 @@ export default function LoginPage() {
                     Login as Staff
                   </Button>
                 </form>
-                <div className="mt-4 text-sm text-muted-foreground">
-                  <p>Sample staff login:</p>
-                  <p>Username: staff</p>
-                  <p>Password: 12345</p>
-                </div>
+                
               </TabsContent>
             </Tabs>
           </CardContent>
           <CardFooter className="flex flex-col space-y-2">
-            <div className="text-sm text-muted-foreground text-center w-full">
-              <a href="#" className="hover:underline">
-                Forgot password?
-              </a>
-            </div>
+           
             <div className="text-sm text-muted-foreground text-center w-full">
               <p>Doctors and staff registration is managed by admins. Contact your administrator to get registered.</p>
             </div>

@@ -32,8 +32,8 @@ type FormData = {
   frequency: string
   time: string[]
   instructions: string
-  patientId: string // Added for API compatibility
-  patientName: string // Added for API compatibility
+  patientId: string
+  patientName: string
 }
 
 export default function DoctorPrescriptionsPage() {
@@ -43,6 +43,7 @@ export default function DoctorPrescriptionsPage() {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>("")
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
   const form = useForm<FormData>({
     defaultValues: {
@@ -131,10 +132,10 @@ export default function DoctorPrescriptionsPage() {
           dosage: data.dosage,
           frequency: data.frequency,
           prescribedDate: new Date().toISOString(),
-          expiryDate: new Date().toISOString(), // Adjust as needed
+          expiryDate: new Date().toISOString(),
           refills: 0,
           instructions: data.instructions,
-          time:data.time,
+          time: data.time,
         }),
       })
 
@@ -146,11 +147,15 @@ export default function DoctorPrescriptionsPage() {
       createdPrescription.patientName = `${createdPrescription.patient.firstName} ${createdPrescription.patient.lastName}`
 
       setPrescriptions([...prescriptions, createdPrescription])
-      form.reset()
-      setOpen(false)
+      setMessage({ type: "success", text: "Medication added successfully!" })
+      setTimeout(() => {
+        setOpen(false)
+        setMessage(null)
+        form.reset()
+      }, 2000) // Close dialog and reset after 2 seconds
     } catch (error) {
       console.error("Error creating prescription:", error)
-      alert("Failed to create prescription.")
+      setMessage({ type: "error", text: "Failed to add medication. Please try again." })
     }
   }
 
@@ -158,7 +163,10 @@ export default function DoctorPrescriptionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Medications</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(isOpen) => {
+          setOpen(isOpen)
+          if (!isOpen) setMessage(null) // Clear message when dialog closes
+        }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -170,21 +178,13 @@ export default function DoctorPrescriptionsPage() {
               <DialogTitle>Add New Medication</DialogTitle>
               <DialogDescription>Add a new medication to your schedule and set reminders.</DialogDescription>
             </DialogHeader>
+            {message && (
+              <div className={`p-4 rounded-md ${message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                {message.text}
+              </div>
+            )}
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                <FormField
-                  control={form.control}
-                  name="patientName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Patient Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter patient name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <FormField
                   control={form.control}
                   name="patientId"
@@ -343,7 +343,6 @@ export default function DoctorPrescriptionsPage() {
                   <TableHead>Patient</TableHead>
                   <TableHead>Medication</TableHead>
                   <TableHead>Dosage & Frequency</TableHead>
-                 
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -365,7 +364,6 @@ export default function DoctorPrescriptionsPage() {
                         <div>{prescription.dosage}</div>
                         <div className="text-xs text-muted-foreground">{prescription.frequency}</div>
                       </TableCell>
-                      
                     </TableRow>
                   ))
                 )}
