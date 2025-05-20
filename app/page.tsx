@@ -39,14 +39,7 @@ export default function Dashboard() {
       
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="overflow-hidden border-none shadow-md">
-          <div className="bg-primary text-primary-foreground px-6 py-4">
-            <h2 className="text-xl font-semibold">Health Status</h2>
-          </div>
-          <div className="p-6">
-            <HealthMetrics />
-          </div>
-        </Card>
+    
 
         <Card className="overflow-hidden border-none shadow-md">
           <div className="bg-primary text-primary-foreground px-6 py-4">
@@ -54,6 +47,20 @@ export default function Dashboard() {
           </div>
           <div className="p-6">
             <FluidTracker />
+          </div>
+        </Card>
+        <Card className="overflow-hidden border-none shadow-md">
+          <div className="bg-primary text-primary-foreground px-6 py-4 flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Medication Reminders</h2>
+            <Button size="sm" variant="secondary" asChild>
+              <Link href="/medications">
+                <Pill className="h-4 w-4 mr-2" />
+                Manage
+              </Link>
+            </Button>
+          </div>
+          <div className="p-6">
+            <MedicationReminders />
           </div>
         </Card>
       </div>
@@ -74,20 +81,7 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        <Card className="overflow-hidden border-none shadow-md">
-          <div className="bg-primary text-primary-foreground px-6 py-4 flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Medication Reminders</h2>
-            <Button size="sm" variant="secondary" asChild>
-              <Link href="/medications">
-                <Pill className="h-4 w-4 mr-2" />
-                Manage
-              </Link>
-            </Button>
-          </div>
-          <div className="p-6">
-            <MedicationReminders />
-          </div>
-        </Card>
+        
       </div>
 
       

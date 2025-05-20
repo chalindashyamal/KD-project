@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const token = jwt.sign(
       { id: user.id },
       JWT_SECRET,
-      { expiresIn: "7d" } // Token valid for 1 day
+      { expiresIn: "7d" } // Token valid for 7 day
     );
 
     // Store token in a simple in-memory store (or use a database/session store)
@@ -48,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         secure: process.env.NODE_ENV === "production", // Use secure cookies in production
         sameSite: "strict", // Prevent CSRF
         path: "/", // Cookie available across the entire site
-        maxAge: 7*60 * 60 * 24, // 1 day
+        maxAge: 7 *60 * 60 * 24, // 1 day
       })
     );
 

@@ -1,117 +1,133 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+"use client"
+
+import { useState, useEffect } from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { format, isSameDay } from "date-fns"
-import { Clock, MapPin, MoreHorizontal, Edit, Trash2 } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useEffect, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Pencil, Trash2 } from "lucide-react"
 import request from "@/lib/request"
 
-interface Appointment {
-  id: number
-  type: string
-  date: string
-  time: string
-  location: string
-  notes: string
-}
+type Appointment = {
+  id: number;
+  patientId: string;
+  patientName: string;
+  type: string;
+  date: string; // ISO date string
+  time: string;
+  location: string;
+  notes?: string;
+};
 
-interface AppointmentListProps {
-  selectedDate?: Date
-}
+type AppointmentListProps = {
+  selectedDate: Date | undefined;
+  onEdit: (appointment: Appointment) => void;
+  onDelete: (id: number) => void;
+  refreshKey: number; // Add refreshKey to props
+};
 
-interface AppointmentListProps {
-  selectedDate?: Date
-}
-
-export default function AppointmentList({ selectedDate }: AppointmentListProps) {
-  const [filteredAppointments, setAppointments] = useState<Appointment[]>([])
+export default function AppointmentList({ selectedDate, onEdit, onDelete, refreshKey }: AppointmentListProps) {
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string>("")
 
   useEffect(() => {
     async function fetchAppointments() {
       try {
-        const query = selectedDate
-          ? `?date=${format(selectedDate, "yyyy-MM-dd")}`
-          : ""
-        const response = await request(`/api/appointments${query}`)
+        setLoading(true)
+        const response = await request("/api/appointments")
         if (!response.ok) {
-          console.error("Failed to fetch appointments")
-          return
+          throw new Error("Failed to fetch appointments.")
         }
         const data = await response.json()
-        setAppointments(data)
-      } catch (error) {
-        console.error("Error fetching appointments:", error)
+        setAppointments(data.map((appt: any) => ({
+          ...appt,
+          patientName: `${appt.patient.firstName} ${appt.patient.lastName}`,
+        })))
+      } catch (err: any) {
+        console.error("Error fetching appointments:", err.message)
+        setError(err.message)
+      } finally {
+        setLoading(false)
       }
     }
 
     fetchAppointments()
-  }, [selectedDate])
+  }, [refreshKey]) // Add refreshKey to dependencies to trigger re-fetch
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>
+  }
+
+  const filteredAppointments = selectedDate
+    ? appointments.filter((appt) => {
+        const apptDate = new Date(appt.date)
+        return (
+          apptDate.getFullYear() === selectedDate.getFullYear() &&
+          apptDate.getMonth() === selectedDate.getMonth() &&
+          apptDate.getDate() === selectedDate.getDate()
+        )
+      })
+    : appointments
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>
-          {selectedDate ? `Appointments on ${format(selectedDate, "MMMM d, yyyy")}` : "Upcoming Appointments"}
-        </CardTitle>
-        <CardDescription>
-          {filteredAppointments.length === 0
-            ? "No appointments scheduled for this date"
-            : `${filteredAppointments.length} appointment(s) scheduled`}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {filteredAppointments.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground">No appointments found for the selected date.</div>
-          ) : (
-            filteredAppointments.map((appointment) => (
-              <div key={appointment.id} className="flex justify-between items-start border-b pb-4 last:border-0">
-                <div className="space-y-1">
-                  <div className="flex items-center">
-                    <Badge variant={appointment.type === "Dialysis" ? "destructive" : "secondary"} className="mr-2">
-                      {appointment.type}
-                    </Badge>
-                    <span className="text-sm font-medium">{format(appointment.date, "MMMM d, yyyy")}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Clock className="mr-1 h-3 w-3" />
-                    {appointment.time}
-                  </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <MapPin className="mr-1 h-3 w-3" />
-                    {appointment.location}
-                  </div>
-                  {appointment.notes && (
-                    <div className="text-xs bg-muted p-2 rounded-md mt-2">
-                      <span className="font-semibold">Note:</span> {appointment.notes}
-                    </div>
-                  )}
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit Appointment
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Cancel Appointment
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ))
-          )}
+      <CardContent className="pt-6">
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Type</TableHead>
+                <TableHead>Time</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Notes</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredAppointments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    No appointments found for the selected date
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredAppointments.map((appt) => (
+                  <TableRow key={appt.id}>
+                    <TableCell>
+                      <Badge variant="outline">{appt.type}</Badge>
+                    </TableCell>
+                    <TableCell>{appt.time}</TableCell>
+                    <TableCell>{appt.location}</TableCell>
+                    <TableCell className="max-w-xs truncate">{appt.notes || "N/A"}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onEdit(appt)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDelete(appt.id)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
       </CardContent>
     </Card>
   )
 }
-

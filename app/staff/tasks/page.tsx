@@ -252,7 +252,7 @@ export default function StaffTasksPage() {
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label htmlFor="patientName">Patient Name</Label>
                   <Input
                     id="patientName"
@@ -262,7 +262,7 @@ export default function StaffTasksPage() {
                     placeholder="Enter patient name"
                     required
                   />
-                </div>
+                </div> */}
                 <div className="space-y-2">
                   <Label htmlFor="patientId">Patient ID</Label>
                   <Input
@@ -421,9 +421,9 @@ export default function StaffTasksPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm">
+                              {/* <Button variant="outline" size="sm">
                                 Details
-                              </Button>
+                              </Button> */}
                               <Button size="sm" onClick={() => handleComplete(task.id)}>
                                 Complete
                               </Button>

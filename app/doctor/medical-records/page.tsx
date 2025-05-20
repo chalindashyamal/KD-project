@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Filter, Plus, Search, Download, Calendar } from "lucide-react"
+import { Filter, Plus, Search, Download, Calendar, Pencil, Trash2 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -29,7 +29,12 @@ export default function DoctorMedicalRecordsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [recordTypeFilter, setRecordTypeFilter] = useState("all")
   const [showRecordForm, setShowRecordForm] = useState(false)
+  const [showEditForm, setShowEditForm] = useState(false)
   const [medicalRecords, setMedicalRecords] = useState<PatientRecord[]>([])
+  const [editRecord, setEditRecord] = useState<PatientRecord | null>(null)
+  const [error, setError] = useState<string>("")
+  const [successMessage, setSuccessMessage] = useState<string>("")
+  const [loading, setLoading] = useState<boolean>(true)
 
   const [newRecord, setNewRecord] = useState({
     patientName: "",
@@ -40,39 +45,36 @@ export default function DoctorMedicalRecordsPage() {
     description: "",
   })
 
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
-
   useEffect(() => {
     async function fetchMedicalRecords() {
       try {
-        setLoading(true);
-        const response = await request("/api/medical-records");
+        setLoading(true)
+        const response = await request("/api/medical-records")
         if (!response.ok) {
-          throw new Error("Failed to fetch medical records.");
+          throw new Error("Failed to fetch medical records.")
         }
-        const data = await response.json();
+        const data = await response.json()
         setMedicalRecords(data.map((record: any) => ({
           ...record,
           patientName: `${record.patient.firstName} ${record.patient.lastName}`,
-        })));
+        })))
       } catch (err: any) {
-        console.error("Error fetching medical records:", err.message);
-        setError(err.message);
+        console.error("Error fetching medical records:", err.message)
+        setError(err.message)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
 
-    fetchMedicalRecords();
-  }, []);
+    fetchMedicalRecords()
+  }, [])
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div>Error: {error}</div>
   }
 
   // Filter medical records based on search query and record type filter
@@ -93,9 +95,13 @@ export default function DoctorMedicalRecordsPage() {
     setNewRecord((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setEditRecord((prev) => prev ? ({ ...prev, [name]: value }) : null)
+  }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     try {
       const response = await request("/api/medical-records", {
         method: "POST",
@@ -104,25 +110,21 @@ export default function DoctorMedicalRecordsPage() {
         },
         body: JSON.stringify({
           patientId: newRecord.patientId,
-          patientName: newRecord.patientName,
           recordType: newRecord.recordType,
           date: newRecord.date.toISOString(),
           provider: newRecord.provider,
           description: newRecord.description,
         }),
-      });
+      })
 
       if (!response.ok) {
-        throw new Error("Failed to create medical record.");
+        throw new Error("Failed to create medical record.")
       }
 
-      const createdRecord = await response.json();
-      createdRecord.patientName = `${createdRecord.patient.firstName} ${createdRecord.patient.lastName}`;
-
-      // Update the local state with the new medical record
-      setMedicalRecords([...medicalRecords, createdRecord]);
-
-      // Reset the form
+      const createdRecord = await response.json()
+      createdRecord.patientName = `${createdRecord.patient.firstName} ${createdRecord.patient.lastName}`
+      setMedicalRecords([...medicalRecords, createdRecord])
+      setSuccessMessage("Medical record created successfully!")
       setNewRecord({
         patientName: "",
         patientId: "",
@@ -130,16 +132,92 @@ export default function DoctorMedicalRecordsPage() {
         date: new Date(),
         provider: "",
         description: "",
-      });
-      setShowRecordForm(false);
+      })
+      setShowRecordForm(false)
+      setTimeout(() => setSuccessMessage(""), 3000)
     } catch (error) {
-      console.error("Error creating medical record:", error);
-      alert("Failed to create medical record.");
+      console.error("Error creating medical record:", error)
+      setError("Failed to create medical record.")
+      setTimeout(() => setError(""), 3000)
     }
-  };
+  }
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editRecord) return
+
+    try {
+      const response = await request("/api/medical-records", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: editRecord.id,
+          patientId: editRecord.patientId,
+          recordType: editRecord.recordType,
+          date: new Date(editRecord.date).toISOString(),
+          provider: editRecord.provider,
+          description: editRecord.description,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update medical record.")
+      }
+
+      const updatedRecord = await response.json()
+      updatedRecord.patientName = editRecord.patientName
+      setMedicalRecords(medicalRecords.map((record) => (record.id === updatedRecord.id ? updatedRecord : record)))
+      setSuccessMessage("Medical record updated successfully!")
+      setShowEditForm(false)
+      setEditRecord(null)
+      setTimeout(() => setSuccessMessage(""), 3000)
+    } catch (error) {
+      console.error("Error updating medical record:", error)
+      setError("Failed to update medical record.")
+      setTimeout(() => setError(""), 3000)
+    }
+  }
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this medical record?")) return
+
+    try {
+      const response = await request("/api/medical-records", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to delete medical record.")
+      }
+
+      setMedicalRecords(medicalRecords.filter((record) => record.id !== id))
+      setSuccessMessage("Medical record deleted successfully!")
+      setTimeout(() => setSuccessMessage(""), 3000)
+    } catch (error) {
+      console.error("Error deleting medical record:", error)
+      setError("Failed to delete medical record.")
+      setTimeout(() => setError(""), 3000)
+    }
+  }
 
   return (
     <div className="space-y-6">
+      {successMessage && (
+        <div className="p-4 bg-green-100 text-green-700 rounded-md">
+          {successMessage}
+        </div>
+      )}
+      {error && (
+        <div className="p-4 bg-red-100 text-red-700 rounded-md">
+          {error}
+        </div>
+      )}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Medical Records</h1>
@@ -157,31 +235,17 @@ export default function DoctorMedicalRecordsPage() {
               <DialogTitle>Create New Medical Record</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="patientName">Patient Name</Label>
-                  <Input
-                    id="patientName"
-                    name="patientName"
-                    value={newRecord.patientName}
-                    onChange={handleInputChange}
-                    placeholder="Enter patient name"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="patientId">Patient ID</Label>
-                  <Input
-                    id="patientId"
-                    name="patientId"
-                    value={newRecord.patientId}
-                    onChange={handleInputChange}
-                    placeholder="Enter patient ID"
-                    required
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="patientId">Patient ID</Label>
+                <Input
+                  id="patientId"
+                  name="patientId"
+                  value={newRecord.patientId}
+                  onChange={handleInputChange}
+                  placeholder="Enter patient ID"
+                  required
+                />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="recordType">Record Type</Label>
                 <Select
@@ -201,7 +265,6 @@ export default function DoctorMedicalRecordsPage() {
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label>Date</Label>
                 <Popover>
@@ -226,7 +289,6 @@ export default function DoctorMedicalRecordsPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="provider">Provider</Label>
                 <Input
@@ -238,7 +300,6 @@ export default function DoctorMedicalRecordsPage() {
                   required
                 />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Input
@@ -250,7 +311,6 @@ export default function DoctorMedicalRecordsPage() {
                   required
                 />
               </div>
-
               <div className="flex justify-end gap-4">
                 <Button variant="outline" type="button" onClick={() => setShowRecordForm(false)}>
                   Cancel
@@ -296,6 +356,102 @@ export default function DoctorMedicalRecordsPage() {
             </div>
           </div>
 
+          <Dialog open={showEditForm} onOpenChange={setShowEditForm}>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>Edit Medical Record</DialogTitle>
+              </DialogHeader>
+              {editRecord && (
+                <form onSubmit={handleEditSubmit} className="space-y-6">
+                  <div className="space-y-2 grok-4">
+                    <Label htmlFor="patientId">Patient ID</Label>
+                    <Input
+                      id="patientId"
+                      name="patientId"
+                      value={editRecord.patientId}
+                      onChange={handleEditInputChange}
+                      placeholder="Enter patient ID"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="recordType">Record Type</Label>
+                    <Select
+                      name="recordType"
+                      value={editRecord.recordType}
+                      onValueChange={(value) => setEditRecord((prev) => prev ? ({ ...prev, recordType: value }) : null)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select record type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Progress Note">Progress Note</SelectItem>
+                        <SelectItem value="Dialysis Report">Dialysis Report</SelectItem>
+                        <SelectItem value="Transplant Evaluation">Transplant Evaluation</SelectItem>
+                        <SelectItem value="Nutrition Consultation">Nutrition Consultation</SelectItem>
+                        <SelectItem value="Procedure Note">Procedure Note</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {editRecord.date
+                            ? format(new Date(editRecord.date), "PPP")
+                            : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <CalendarComponent
+                          mode="single"
+                          selected={new Date(editRecord.date)}
+                          onSelect={(selectedDate) =>
+                            setEditRecord((prev) => prev ? ({ ...prev, date: selectedDate?.toISOString() || new Date().toISOString() }) : null)
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="provider">Provider</Label>
+                    <Input
+                      id="provider"
+                      name="provider"
+                      value={editRecord.provider}
+                      onChange={handleEditInputChange}
+                      placeholder="Enter provider name"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Input
+                      id="description"
+                      name="description"
+                      value={editRecord.description}
+                      onChange={handleEditInputChange}
+                      placeholder="Enter record description"
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-end gap-4">
+                    <Button variant="outline" type="button" onClick={() => setShowEditForm(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">Save Changes</Button>
+                  </div>
+                </form>
+              )}
+            </DialogContent>
+          </Dialog>
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -305,7 +461,7 @@ export default function DoctorMedicalRecordsPage() {
                   <TableHead>Date</TableHead>
                   <TableHead>Provider</TableHead>
                   <TableHead>Description</TableHead>
-                
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -329,7 +485,24 @@ export default function DoctorMedicalRecordsPage() {
                       <TableCell>{record.provider}</TableCell>
                       <TableCell className="max-w-xs truncate">{record.description}</TableCell>
                       <TableCell className="text-right">
-                        
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditRecord(record)
+                            setShowEditForm(true)
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(record.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))

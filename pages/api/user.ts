@@ -17,9 +17,12 @@ export default withAuth(async function handler(req, res) {
                 select: {
                     id: true,
                     name: true,
+                    username: true,
+                    role: true,
+                    patientId: true,
                 }
             });
-
+            //data.token = req.cookies.token
             res.status(200).json(data);
         } catch (error) {
             console.error("Error fetching staff data:", error);

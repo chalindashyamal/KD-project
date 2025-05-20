@@ -59,7 +59,7 @@ export default function DoctorReportsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Reports & Analytics</h1>
           <p className="text-muted-foreground">View and generate clinical reports and analytics</p>
         </div>
-        <div className="flex gap-2">
+        {/* <div className="flex gap-2">
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger className="w-[180px]">
               <Calendar className="mr-2 h-4 w-4" />
@@ -77,7 +77,7 @@ export default function DoctorReportsPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-        </div>
+        </div> */}
       </div>
 
       <Tabs defaultValue="overview">

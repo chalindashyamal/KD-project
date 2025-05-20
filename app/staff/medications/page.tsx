@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/components/ui/use-toast"
 import request from "@/lib/request"
 
 type MedicationAPI = {
@@ -36,6 +37,7 @@ type Medication = {
   times: string[]
   instructions: string
   status: { time: string; taken: boolean; AdministeredBy?: string }[]
+  isProvided: boolean // Local state for UI-only toggle
 }
 
 type MedicationHistoryItem = {
@@ -51,6 +53,7 @@ type MedicationHistoryItem = {
 }
 
 export default function StaffMedicationsPage() {
+  const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("upcoming")
   const [showAdministerForm, setShowAdministerForm] = useState(false)
@@ -70,6 +73,7 @@ export default function StaffMedicationsPage() {
         setMedications(data.map((med) => ({
           ...med,
           patientName: `${med.patient.firstName} ${med.patient.lastName}`,
+          isProvided: false // Initialize as not provided
         })))
         setMedicationHistory(data.map((med) => ({
           id: med.id,
@@ -162,6 +166,19 @@ export default function StaffMedicationsPage() {
     }
   }
 
+  const handleToggleProvided = (medicationId: number) => {
+    setMedications((prev) =>
+      prev.map((med) =>
+        med.id === medicationId ? { ...med, isProvided: !med.isProvided } : med
+      )
+    )
+    toast({
+      title: "Success",
+      description: "Status updated successfully.",
+      duration: 3000,
+    })
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -183,7 +200,7 @@ export default function StaffMedicationsPage() {
         </div>
         <Dialog open={showAdministerForm} onOpenChange={setShowAdministerForm}>
           <DialogTrigger asChild>
-            <Button className="ml-4">Administer Medication</Button>
+            {/* <Button className="ml-4">Administer Medication</Button> */}
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
@@ -353,7 +370,8 @@ export default function StaffMedicationsPage() {
                   <TableHead>Patient</TableHead>
                   <TableHead>Medication</TableHead>
                   <TableHead>Dosage & Frequency</TableHead>
-                 
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -375,7 +393,20 @@ export default function StaffMedicationsPage() {
                         <div>{prescription.dosage}</div>
                         <div className="text-xs text-muted-foreground">{prescription.instructions}</div>
                       </TableCell>
-                      
+                      <TableCell>
+                        <Badge variant={prescription.isProvided ? "success" : "secondary"}>
+                          {prescription.isProvided ? "Provided" : "Not Provided"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant={prescription.isProvided ? "outline" : "default"}
+                          size="sm"
+                          onClick={() => handleToggleProvided(prescription.id)}
+                        >
+                          {prescription.isProvided ? "Mark Not Provided" : "Mark Provided"}
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
