@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,6 +36,12 @@ interface DietPlan {
 }
 
 export default function DietPlanForm() {
+  return <Suspense>
+    <DietPlanFormView/>
+  </Suspense>
+}
+
+function DietPlanFormView() {
   const params = useSearchParams()
   const patientId = params?.get('patientId') || ''
   const [dietPlan, setDietPlan] = useState<DietPlan>({
